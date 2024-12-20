@@ -6,6 +6,7 @@ import { User } from '@nextui-org/react';
 import Link from 'next/link';
 import { Heart, Bookmark, Share2, MessageCircle, X, ThumbsUp, Globe2 } from 'lucide-react';
 import { formatDistanceToNowStrict } from 'date-fns';
+import Image from 'next/image'; // Add this import
 
 import CommentSection from './CommentSection';
 
@@ -22,11 +23,13 @@ const PostModal = ({
   followingUsers,
   handleFollow,
 }) => {
-  if (!isOpen || !post) return null;
+  const [selectedPost, setSelectedPost] = useState(post);
+
+  // Move useEffect hooks before the conditional return
   useEffect(() => {
     const fetchPostWithComments = async () => {
       try {
-        const response = await fetch(`/api/posts/${post._id}`);
+        const response = await fetch(`/api/posts/${post?._id}`);
         if (response.ok) {
           const updatedPost = await response.json();
           setSelectedPost(updatedPost);
@@ -40,9 +43,8 @@ const PostModal = ({
       fetchPostWithComments();
     }
   }, [isOpen, post?._id]);
-  console.log(post,"s");
+
   useEffect(() => {
-    // This is a backup to ensure scroll is properly managed
     if (isOpen) {
       document.body.style.overflow = 'hidden';
     }
@@ -52,6 +54,8 @@ const PostModal = ({
     };
   }, [isOpen]);
 
+  
+  if (!isOpen || !post) return null;
 
   return (
     <div className="fixed inset-0 flex items-center justify-center p-4 z-50 bg-black/20">
@@ -115,7 +119,13 @@ const PostModal = ({
             <h2 className="text-2xl font-semibold mb-4 text-gray-800">{post.title}</h2>
             {post.image && (
               <div className="relative aspect-video mb-4 bg-gray-50 rounded-lg overflow-hidden">
-                <img src={post.image} alt={post.title} className="w-full h-full object-cover" />
+                <Image
+                  src={post.image}
+                  alt={post.title}
+                  fill
+                  className="object-cover"
+                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                />
               </div>
             )}
             <p className="text-gray-700 mb-6 leading-relaxed">{post.content}</p>

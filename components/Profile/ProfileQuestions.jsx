@@ -12,7 +12,7 @@ const ProfileQuestions = ({ userId }) => {
   const [likedQuestions, setLikedQuestions] = useState(new Set());
   const [savedQuestions, setSavedQuestions] = useState(new Set());
 
-  const fetchUserQuestions = async () => {
+  const fetchUserQuestions = useCallback(async () => {
     try {
       let endpoint;
       
@@ -32,7 +32,6 @@ const ProfileQuestions = ({ userId }) => {
       const data = await res.json();
       setQuestions(data);
       
-      // Update liked and saved questions sets based on the response
       setLikedQuestions(new Set(
         data.filter(q => q.isLiked).map(q => q._id)
       ));
@@ -42,13 +41,13 @@ const ProfileQuestions = ({ userId }) => {
     } catch (error) {
       console.error('Error fetching user questions:', error);
     }
-  };
+  }, [userId, session?.user?.id]); // Add dependencies here
 
   useEffect(() => {
     if (userId || status === 'authenticated') {
       fetchUserQuestions();
     }
-  }, [userId, status, session]);
+  }, [userId, status, session, fetchUserQuestions]); 
 
   const handleLike = async (questionId, e) => {
     e.stopPropagation();
@@ -121,7 +120,7 @@ const handleSave = async (questionId, e) => {
   return (
     <div className="w-full max-w-2xl mx-auto">
       {questions.length === 0 ? (
-        <p className="text-gray-600">You haven't asked any questions yet.</p>
+        <p className="text-gray-600">You haven&apos;t asked any questions yet.</p>
       ) : (
         questions.map((question) => (
           <div

@@ -59,8 +59,8 @@ const Navbar = () => {
         setIsLoading(false);
       }
     }, 300),
-    []
-  );
+    [setSearchResults, setIsLoading]
+);
 
   const handleSearchChange = (e) => {
     const query = e.target.value;
@@ -83,24 +83,7 @@ const Navbar = () => {
     setIsSearchOpen(false);
   };
 
-  // Keyboard navigation
-  const handleKeyDown = (e) => {
-    if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      setSelectedIndex(prev =>
-        prev < searchResults.length - 1 ? prev + 1 : prev
-      );
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      setSelectedIndex(prev => prev > -1 ? prev - 1 : -1);
-    } else if (e.key === 'Enter' && selectedIndex > -1) {
-      e.preventDefault();
-      handleResultClick(searchResults[selectedIndex]);
-    } else if (e.key === 'Escape') {
-      setIsSearchOpen(false);
-    }
-  };
-
+  
   // Effect for keyboard shortcuts
   useEffect(() => {
     const handleKeyPress = (e) => {
@@ -256,9 +239,9 @@ const Navbar = () => {
                       </div>
                     ))}
                   </div>
-                ) : (
+                ) :  (
                   <div className="p-4 text-center text-gray-500">
-                    No results found for "{searchQuery}"
+                    No results found for &quot;{searchQuery}&quot;
                   </div>
                 )
               ) : (

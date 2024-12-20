@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { Camera, X, Image as ImageIcon, Globe2 } from 'lucide-react';
+import Image from 'next/image';
 
 const AskModal = ({ isOpen, onClose, onPostCreated }) => {
   const [title, setTitle] = useState('');
@@ -71,13 +72,13 @@ const AskModal = ({ isOpen, onClose, onPostCreated }) => {
     } catch (error) {
       console.error('Error creating post:', error);
     }
-};
+  };
 
   const handleImageChange = (e) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       setImage(file);
-      
+
       const reader = new FileReader();
       reader.onloadend = () => {
         setImagePreview(reader.result);
@@ -94,7 +95,7 @@ const AskModal = ({ isOpen, onClose, onPostCreated }) => {
   if (!isOpen) return null;
 
   return (
-    <div 
+    <div
       className="fixed -inset-20 flex items-center justify-center pt-0   z-50"
       style={{
         backgroundColor: 'rgba(0, 0, 0, 0.2)'
@@ -103,31 +104,29 @@ const AskModal = ({ isOpen, onClose, onPostCreated }) => {
       <div className="bg-white w-full max-w-xl rounded-lg shadow-lg flex flex-col max-h-[80vh]">
         {/* Header */}
         <div className="flex items-stretch border-b shrink-0">
-          <button 
+          <button
             onClick={onClose}
             className="p-3 text-gray-500 hover:text-gray-700"
           >
             <X className="w-4 h-4" />
           </button>
-          
+
           <div className="flex-1 flex bg-green-50">
             <button
               onClick={() => handleTypeChange('question')}
-              className={`flex-1 py-3 px-4 text-sm font-medium ${
-                type === 'question' 
-                  ? 'border-b-2 border-green-600 text-green-600' 
-                  : 'text-gray-600'
-              }`}
+              className={`flex-1 py-3 px-4 text-sm font-medium ${type === 'question'
+                ? 'border-b-2 border-green-600 text-green-600'
+                : 'text-gray-600'
+                }`}
             >
               Ask a question
             </button>
             <button
               onClick={() => handleTypeChange('post')}
-              className={`flex-1 py-3 px-4 text-sm font-medium ${
-                type === 'post' 
-                  ? 'border-b-2 border-green-600 text-green-600' 
-                  : 'text-gray-600'
-              }`}
+              className={`flex-1 py-3 px-4 text-sm font-medium ${type === 'post'
+                ? 'border-b-2 border-green-600 text-green-600'
+                : 'text-gray-600'
+                }`}
             >
               Share your knowledge
             </button>
@@ -150,7 +149,7 @@ const AskModal = ({ isOpen, onClose, onPostCreated }) => {
 
               {type === 'question' && (
                 <div className="text-gray-500 text-xs">
-                  Start your question with "What", "How", "Why", etc.
+                  Start your question with &quot;What&quot;, &quot;How&quot;, &quot;Why&quot;, etc.
                 </div>
               )}
 
@@ -171,10 +170,13 @@ const AskModal = ({ isOpen, onClose, onPostCreated }) => {
 
               {imagePreview && (
                 <div className="relative">
-                  <img
+                  <Image
                     src={imagePreview}
                     alt="Preview"
+                    width={800}
+                    height={600}
                     className="w-full rounded-lg"
+                    style={{ objectFit: 'contain' }}
                   />
                   <button
                     type="button"
@@ -189,8 +191,8 @@ const AskModal = ({ isOpen, onClose, onPostCreated }) => {
 
             {/* Footer */}
             <div className="border-t p-3 flex justify-between items-center mt-auto shrink-0">
-              <label 
-                htmlFor="image-upload" 
+              <label
+                htmlFor="image-upload"
                 className="flex items-center space-x-2 text-gray-500 hover:text-gray-700 cursor-pointer"
               >
                 <Camera className="w-5 h-5" />
