@@ -4,6 +4,8 @@ import Post from '../../../models/Post';
 import Question from '../../../models/Question';
 import { NextResponse } from 'next/server';
 
+export const dynamic = 'force-dynamic';
+
 // Helper function to ensure indexes exist
 async function ensureIndexes() {
   try {

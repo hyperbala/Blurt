@@ -2,12 +2,12 @@
 
 'use client'
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { User } from '@nextui-org/react';
 import { Heart, Bookmark, Share2, MessageCircle, X, Globe2 } from 'lucide-react';
 import ActionButtons from '../Profile/ActionButtons';
 import { useSession } from 'next-auth/react';
-
+import Image from 'next/image';
 
 
 const ProfilePosts = ({ userId }) => {
@@ -18,10 +18,10 @@ const ProfilePosts = ({ userId }) => {
   const [comment, setComment] = useState('');
   const [sortBy, setSortBy] = useState('new');
 
-  const fetchUserPosts = async () => {
+  const fetchUserPosts = useCallback(async () => {
     try {
       let endpoint;
-      
+
       if (userId) {
         console.log('Fetching posts for specific user:', userId);
         endpoint = `/api/posts/user/${userId}`;
@@ -34,7 +34,7 @@ const ProfilePosts = ({ userId }) => {
       }
 
       const res = await fetch(endpoint);
-      
+
       if (!res.ok) {
         throw new Error('Failed to fetch posts');
       }
@@ -44,14 +44,14 @@ const ProfilePosts = ({ userId }) => {
     } catch (error) {
       console.error('Error fetching user posts:', error);
     }
-  };
+  }, [userId, session?.user?.id, sortBy]);
 
   useEffect(() => {
     if (userId || status === 'authenticated') {
       fetchUserPosts();
     }
-  }, [userId, status, session]);
-  
+  }, [userId, status, session, fetchUserPosts]);
+
   const sortPosts = (postsToSort, sortType) => {
     let sortedPosts = [...postsToSort];
     switch (sortType) {
@@ -152,11 +152,11 @@ const ProfilePosts = ({ userId }) => {
         const newComment = await res.json();
         setPosts(posts.map(post =>
           post._id === postId
-            ? { 
-                ...post, 
-                comments: [...(post.comments || []), newComment],
-                commentsCount: (post.commentsCount || 0) + 1
-              }
+            ? {
+              ...post,
+              comments: [...(post.comments || []), newComment],
+              commentsCount: (post.commentsCount || 0) + 1
+            }
             : post
         ));
         setSelectedPost(prevPost => ({
@@ -208,50 +208,50 @@ const ProfilePosts = ({ userId }) => {
                   <span className="text-xs text-green-700">Public</span>
                 </div>
               </div>
-  
+
               {post.title && (
                 <h2 className="text-xl font-semibold mb-2 text-gray-800">
                   {post.title}
                 </h2>
               )}
-  
+
               {post.image && (
                 <div className="relative aspect-video mb-4 bg-gray-50 rounded-lg overflow-hidden">
-                  <img 
-                    src={post.image} 
-                    alt={post.title || 'Post image'} 
-                    className="w-full h-full object-cover"
+                  <Image
+                    src={post.image}
+                    alt={post.title || 'Post image'}
+                    fill
+                    className="object-cover"
+                    sizes="(max-width: 768px) 100vw, 50vw"
                   />
                 </div>
               )}
-  
+
               <p className="text-gray-600 mb-4 line-clamp-3">{post.content}</p>
-  
+
               <div className="flex items-center justify-between text-sm text-gray-500">
                 <div className="flex items-center space-x-4">
                   <button
-                    className={`flex items-center space-x-1 transition-colors ${
-                      post.isLiked ? 'text-green-600' : 'hover:text-green-600'
-                    }`}
+                    className={`flex items-center space-x-1 transition-colors ${post.isLiked ? 'text-green-600' : 'hover:text-green-600'
+                      }`}
                     onClick={(e) => handleLike(post._id, e)}
                   >
-                    <Heart 
-                      className={`w-4 h-4 ${post.isLiked ? 'fill-current' : ''}`} 
+                    <Heart
+                      className={`w-4 h-4 ${post.isLiked ? 'fill-current' : ''}`}
                     />
                     <span>{post.likes || 0}</span>
                   </button>
-  
+
                   <button
-                    className={`flex items-center space-x-1 transition-colors ${
-                      post.isSaved ? 'text-green-600' : 'hover:text-green-600'
-                    }`}
+                    className={`flex items-center space-x-1 transition-colors ${post.isSaved ? 'text-green-600' : 'hover:text-green-600'
+                      }`}
                     onClick={(e) => handleSave(post._id, e)}
                   >
-                    <Bookmark 
-                      className={`w-4 h-4 ${post.isSaved ? 'fill-current' : ''}`} 
+                    <Bookmark
+                      className={`w-4 h-4 ${post.isSaved ? 'fill-current' : ''}`}
                     />
                   </button>
-  
+
                   <button className="flex items-center space-x-1 hover:text-green-600">
                     <MessageCircle className="w-4 h-4" />
                     <span>{post.comments?.length || 0}</span>
@@ -262,7 +262,7 @@ const ProfilePosts = ({ userId }) => {
           </div>
         ))
       )}
-  
+
       {isModalOpen && selectedPost && (
         <div className="fixed inset-0 flex items-center justify-center p-4 z-50 bg-black/50">
           <div className="bg-white w-full max-w-2xl rounded-lg shadow-xl max-h-[90vh] overflow-y-auto">
@@ -275,7 +275,7 @@ const ProfilePosts = ({ userId }) => {
                 <X className="w-5 h-5 text-gray-500" />
               </button>
             </div>
-  
+
             <div className="p-4">
               <div className="flex items-center space-x-3 mb-4">
                 <User
@@ -293,52 +293,52 @@ const ProfilePosts = ({ userId }) => {
                   }}
                 />
               </div>
-  
+
               {selectedPost.title && (
                 <h2 className="text-2xl font-semibold mb-4">{selectedPost.title}</h2>
               )}
-  
+
               {selectedPost.image && (
                 <div className="relative aspect-video mb-4 bg-gray-100 rounded-lg overflow-hidden">
-                  <img
+                  <Image
                     src={selectedPost.image}
                     alt={selectedPost.title || 'Post image'}
-                    className="w-full h-full object-cover"
+                    fill
+                    className="object-cover"
+                    sizes="(max-width: 768px) 100vw, 50vw"
                   />
                 </div>
               )}
-  
+
               <p className="text-gray-700 mb-6 whitespace-pre-wrap">
                 {selectedPost.content}
               </p>
-  
+
               <div className="flex items-center space-x-6 mb-6">
-                <button 
+                <button
                   onClick={(e) => handleLike(selectedPost._id, e)}
-                  className={`flex items-center space-x-2 ${
-                    selectedPost.isLiked ? 'text-green-600' : 'text-gray-600 hover:text-green-600'
-                  }`}
+                  className={`flex items-center space-x-2 ${selectedPost.isLiked ? 'text-green-600' : 'text-gray-600 hover:text-green-600'
+                    }`}
                 >
                   <Heart className={`w-5 h-5 ${selectedPost.isLiked ? 'fill-current' : ''}`} />
                   <span>{selectedPost.likes || 0} Likes</span>
                 </button>
-  
-                <button 
+
+                <button
                   onClick={(e) => handleSave(selectedPost._id, e)}
-                  className={`flex items-center space-x-2 ${
-                    selectedPost.isSaved ? 'text-green-600' : 'text-gray-600 hover:text-green-600'
-                  }`}
+                  className={`flex items-center space-x-2 ${selectedPost.isSaved ? 'text-green-600' : 'text-gray-600 hover:text-green-600'
+                    }`}
                 >
                   <Bookmark className={`w-5 h-5 ${selectedPost.isSaved ? 'fill-current' : ''}`} />
                   <span>Save</span>
                 </button>
-  
+
                 <button className="flex items-center space-x-2 text-gray-600 hover:text-green-600">
                   <Share2 className="w-5 h-5" />
                   <span>Share</span>
                 </button>
               </div>
-  
+
               <div className="border-t pt-4">
                 <h4 className="text-lg font-semibold mb-4">Comments</h4>
                 <div className="space-y-4 mb-4">
@@ -366,7 +366,7 @@ const ProfilePosts = ({ userId }) => {
                     <p className="text-gray-500 text-center py-4">No comments yet</p>
                   )}
                 </div>
-  
+
                 <div className="flex items-center space-x-2">
                   <input
                     type="text"

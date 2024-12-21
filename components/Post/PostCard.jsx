@@ -2,7 +2,7 @@
 
 import { Heart, Bookmark, Globe2, MessageCircle } from 'react-feather';
 import User from './User';
-
+import Image from 'next/image';
 const PostCard = ({
   post,
   session,
@@ -37,21 +37,20 @@ const PostCard = ({
             </div>
           </div>
           <button
-            className={`px-4 py-1.5 text-sm font-medium ${
-              session?.user?.id === post.author?._id
+            className={`px-4 py-1.5 text-sm font-medium ${session?.user?.id === post.author?._id
                 ? 'text-gray-400 border-gray-400 cursor-not-allowed'
                 : followingUsers.has(post.author?._id)
-                ? 'text-white bg-green-600 border-green-600'
-                : 'text-green-600 border-green-600 hover:bg-green-50'
-            } border rounded-full transition-colors duration-200`}
+                  ? 'text-white bg-green-600 border-green-600'
+                  : 'text-green-600 border-green-600 hover:bg-green-50'
+              } border rounded-full transition-colors duration-200`}
             onClick={(e) => handleFollow(post.author?._id, e)}
             disabled={!session?.user || session.user.id === post.author?._id}
           >
             {session?.user?.id === post.author?._id
               ? 'You'
               : followingUsers.has(post.author?._id)
-              ? 'Following'
-              : 'Follow'}
+                ? 'Following'
+                : 'Follow'}
           </button>
         </div>
 
@@ -59,7 +58,15 @@ const PostCard = ({
 
         {post.image && (
           <div className="relative aspect-video mb-4 bg-gray-50 rounded-lg overflow-hidden">
-            <img src={post.image} alt={post.title} className="w-full h-full object-cover" />
+            <Image
+              src={post.image}
+              alt={post.title || 'Post image'}
+              fill
+              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+              className="object-cover"
+              priority={false}
+              quality={75}
+            />
           </div>
         )}
 
@@ -70,23 +77,20 @@ const PostCard = ({
           <div className="flex items-center space-x-4">
             <button
               onClick={(e) => handleLike(post._id, e)}
-              className={`flex items-center gap-2 transition-colors duration-300 ease-in-out ${
-                likedPosts.has(post._id) ? 'text-green-500' : 'text-gray-500'
-              }`}
+              className={`flex items-center gap-2 transition-colors duration-300 ease-in-out ${likedPosts.has(post._id) ? 'text-green-500' : 'text-gray-500'
+                }`}
               disabled={!session}
             >
               <Heart
-                className={`h-5 w-5 transition-all duration-300 ${
-                  likedPosts.has(post._id) ? 'fill-green-500 stroke-green-500' : ''
-                }`}
+                className={`h-5 w-5 transition-all duration-300 ${likedPosts.has(post._id) ? 'fill-green-500 stroke-green-500' : ''
+                  }`}
               />
               <span>{post.likes || 0}</span>
             </button>
 
             <button
-              className={`flex items-center space-x-1 ${
-                savedPosts.has(post._id) ? 'text-green-600' : 'hover:text-green-600'
-              }`}
+              className={`flex items-center space-x-1 ${savedPosts.has(post._id) ? 'text-green-600' : 'hover:text-green-600'
+                }`}
               onClick={(e) => handleSave(post._id, e)}
             >
               <Bookmark className={`w-4 h-4 ${savedPosts.has(post._id) ? 'fill-current' : ''}`} />

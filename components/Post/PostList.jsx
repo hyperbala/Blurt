@@ -9,6 +9,7 @@ import { useSession } from "next-auth/react";
 import PostModal from './PostModal';
 import { useInteractions } from '../../hooks/useInteractions';
 import { formatDistanceToNowStrict } from 'date-fns';
+import Image from 'next/image';
 
 const toggleScroll = (disable) => {
   if (disable) {
@@ -30,7 +31,7 @@ const PostList = ({ type = 'all', showAll = true }) => {
 
   const { selectedTopic, setSelectedTopic } = useTopicContext();
   const { data: session } = useSession();
-  
+
   const {
     likedItems: likedPosts,
     savedItems: savedPosts,
@@ -135,6 +136,7 @@ const PostList = ({ type = 'all', showAll = true }) => {
 
 
   // Fetch posts
+  // Fetch posts
   useEffect(() => {
     const fetchPosts = async () => {
       try {
@@ -158,7 +160,7 @@ const PostList = ({ type = 'all', showAll = true }) => {
     };
 
     fetchPosts();
-  }, []);
+  }, [type]);
 
   // Filter posts based on selected topic
   useEffect(() => {
@@ -269,14 +271,22 @@ const PostList = ({ type = 'all', showAll = true }) => {
 
             {post.image && (
               <div className="relative aspect-video mb-4 bg-gray-50 rounded-lg overflow-hidden">
-                <img src={post.image} alt={post.title} className="w-full h-full object-cover" />
+                <Image
+                  src={post.image}
+                  alt={post.title || 'Post image'}
+                  fill
+                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                  className="object-cover"
+                  priority={false} // Set to true if this is above the fold
+                />
+
               </div>
             )}
 
             <p className="text-gray-600 mb-4 line-clamp-3">{post.content}</p>
 
             <div className="flex items-center justify-between text-sm text-gray-500 p-4">
-            <span>{formatDistanceToNowStrict(new Date(post.createdAt), { addSuffix: true })}</span>
+              <span>{formatDistanceToNowStrict(new Date(post.createdAt), { addSuffix: true })}</span>
               <div className="flex items-center space-x-4">
                 <button
                   onClick={(e) => handlePostLike(post._id, e)}
@@ -307,22 +317,22 @@ const PostList = ({ type = 'all', showAll = true }) => {
         </div>
       ))}
 
-{isModalOpen && selectedPost && (
-  <PostModal
-    isOpen={isModalOpen}
-    onClose={closeModal}
-    post={selectedPost}
-    session={session}
-    likedPosts={likedPosts}
-    savedPosts={savedPosts}
-    handleLike={handleLike}
-    handleSave={handleSave}
-    setPosts={setPosts}
-    // Add these new props
-    followingUsers={followingUsers}
-    handleFollow={handleFollow}
-  />
-)}
+      {isModalOpen && selectedPost && (
+        <PostModal
+          isOpen={isModalOpen}
+          onClose={closeModal}
+          post={selectedPost}
+          session={session}
+          likedPosts={likedPosts}
+          savedPosts={savedPosts}
+          handleLike={handleLike}
+          handleSave={handleSave}
+          setPosts={setPosts}
+          // Add these new props
+          followingUsers={followingUsers}
+          handleFollow={handleFollow}
+        />
+      )}
     </div>
   );
 }

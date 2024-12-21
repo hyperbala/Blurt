@@ -6,6 +6,7 @@ import { ThumbsUp, ThumbsDown, MessageCircle } from 'lucide-react';
 import Link from 'next/link';
 import { formatDistanceToNowStrict } from 'date-fns';
 import { useUserData } from '../../hooks/useUserData';
+import Image from 'next/image';
 
 const CommentSection = ({ id, type, session }) => {
   const [comments, setComments] = useState([]);
@@ -17,21 +18,21 @@ const CommentSection = ({ id, type, session }) => {
   const userData = useUserData();
 
   useEffect(() => {
-    fetchComments();
-  }, [id]);
-
-  const fetchComments = async () => {
-    try {
-      const response = await fetch(`/api/${type}s/${id}/comments`);
-      if (response.ok) {
-        const data = await response.json();
-        setComments(data);
+    const fetchComments = async () => {
+      try {
+        const response = await fetch(`/api/${type}s/${id}/comments`);
+        if (response.ok) {
+          const data = await response.json();
+          setComments(data);
+        }
+      } catch (error) {
+        console.error('Error fetching comments:', error);
       }
-    } catch (error) {
-      console.error('Error fetching comments:', error);
-    }
-  };
-
+    };
+  
+    fetchComments();
+  }, [id, type]); 
+  
   const handleMainCommentSubmit = async () => {
     if (!comment.trim() || !session?.user) return;
 
@@ -141,11 +142,14 @@ const CommentSection = ({ id, type, session }) => {
       className="flex-shrink-0 hover:opacity-80 transition-opacity"
       onClick={(e) => e.stopPropagation()}
     >
-      <img 
+      <Image 
         src={user?.image || "/default-avatar.png"} 
         alt={user?.name || 'Anonymous'} 
-        className={`rounded-full ${size === 'large' ? 'w-10 h-10' : 'w-8 h-8'}`}
+        className="rounded-full object-cover"
+        fill
+        sizes={size === 'large' ? '40px' : '32px'}
       />
+      
     </Link>
   );
 

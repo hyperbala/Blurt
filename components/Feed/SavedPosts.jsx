@@ -5,6 +5,7 @@ import React, { useEffect, useState } from 'react';
 import { User } from '@nextui-org/react';
 import { Heart, Bookmark, Share2, MessageCircle, Globe2 } from 'lucide-react';
 import { useSession } from 'next-auth/react';
+import Image from 'next/image';
 
 const SavedPosts = () => {
   const [items, setItems] = useState([]);
@@ -110,15 +111,22 @@ const SavedPosts = () => {
               </div>
 
               <h2 className="text-xl font-semibold mb-2 text-gray-800">{item.title || 'Untitled Item'}</h2>
-              
+
               {item.image && (
                 <div className="relative aspect-video mb-4 bg-gray-50 rounded-lg overflow-hidden">
-                  <img src={item.image} alt={item.title} className="w-full h-full object-cover" />
+                  <Image
+                    src={item.image}
+                    alt={item.title || 'Saved item'}
+                    fill
+                    className="object-cover"
+                    sizes="(max-width: 768px) 100vw, 50vw"
+                    priority={false}
+                  />
                 </div>
               )}
-              
+
               <p className="text-gray-600 mb-4 line-clamp-3">{item.content}</p>
-              
+
               <div className="flex items-center justify-between text-sm text-gray-500 px-4">
                 <span>{new Date(item.createdAt).toLocaleString()}</span>
                 <div className="flex items-center space-x-4">

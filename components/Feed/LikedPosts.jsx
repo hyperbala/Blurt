@@ -1,10 +1,11 @@
 // components/Feed/LikedPosts.jsx
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { User } from '@nextui-org/react';
 import { Heart, Bookmark, Share2, MessageCircle, X, Globe2 } from 'lucide-react';
 import ActionButtons from '../Profile/ActionButtons';
+import Image from 'next/image';
 
 const LikedPosts = () => {
     const [likedItems, setLikedItems] = useState([]);
@@ -16,11 +17,7 @@ const LikedPosts = () => {
     const [sortBy, setSortBy] = useState('new');
     const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        fetchLikedItems();
-    }, []);
-
-    const fetchLikedItems = async () => {
+    const fetchLikedItems = useCallback(async () => {
         try {
             setLoading(true);
             const response = await fetch('/api/users/liked-posts');
@@ -35,7 +32,11 @@ const LikedPosts = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [sortBy]); // Add sortBy as a dependency since it's used in the function
+
+    useEffect(() => {
+        fetchLikedItems();
+    }, [fetchLikedItems]);
 
     const sortItems = (items, sortType) => {
         let sortedItems = [...items];
@@ -187,7 +188,15 @@ const LikedPosts = () => {
 
                             {item.image && (
                                 <div className="relative aspect-video mb-4 bg-gray-50 rounded-lg overflow-hidden">
-                                    <img src={item.image} alt={item.title} className="w-full h-full object-cover" />
+                                    <Image
+                                        src={item.image}
+                                        alt={item.title || 'Post image'}
+                                        fill
+                                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                                        className="object-cover"
+                                        priority={false}
+                                    />
+
                                 </div>
                             )}
 
@@ -243,11 +252,15 @@ const LikedPosts = () => {
                             <h2 className="text-2xl font-semibold mb-4">{selectedItem.title}</h2>
                             {selectedItem.image && (
                                 <div className="relative aspect-video mb-4 bg-gray-100 rounded-lg overflow-hidden">
-                                    <img
+                                    <Image
                                         src={selectedItem.image}
-                                        alt={selectedItem.title}
-                                        className="w-full h-full object-cover"
+                                        alt={selectedItem.title || 'Post image'}
+                                        fill
+                                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                                        className="object-cover"
+                                        priority={false}
                                     />
+
                                 </div>
                             )}
                             <p className="text-gray-700 mb-6 leading-relaxed">{selectedItem.content}</p>

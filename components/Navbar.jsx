@@ -14,6 +14,7 @@ import { useSession } from 'next-auth/react';
 import debounce from 'lodash/debounce';
 import { usePostModal } from '../hooks/usePostModal';
 
+
 const Navbar = () => {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -40,7 +41,7 @@ const Navbar = () => {
 
   // Search functionality
   const debouncedSearch = useCallback(
-    debounce(async (query) => {
+    async (query) => {
       if (query.trim().length === 0) {
         setSearchResults([]);
         return;
@@ -58,16 +59,20 @@ const Navbar = () => {
       } finally {
         setIsLoading(false);
       }
-    }, 300),
+    },
     [setSearchResults, setIsLoading]
 );
 
-  const handleSearchChange = (e) => {
+// Wrap the debounced version outside of the component or use useMemo
+const debouncedSearchHandler = debounce(debouncedSearch, 300);
+
+// In your handleSearchChange function:
+const handleSearchChange = (e) => {
     const query = e.target.value;
     setSearchQuery(query);
     setSelectedIndex(-1);
-    debouncedSearch(query);
-  };
+    debouncedSearchHandler(query);
+};
 
   const handleResultClick = (result) => {
     openModal({

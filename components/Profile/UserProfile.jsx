@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef ,useCallback} from 'react';
 import { useSession } from 'next-auth/react';
 import Image from 'next/image';
 import { Camera } from 'lucide-react';
@@ -19,11 +19,8 @@ export default function UserProfile() {
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef(null);
 
-  useEffect(() => {
-    fetchUserData();
-  }, [session]);
 
-  const fetchUserData = async () => {
+  const fetchUserData = useCallback(async () => {
     if (!session?.user?.id) return;
     
     try {
@@ -33,7 +30,11 @@ export default function UserProfile() {
     } catch (error) {
       console.error('Error fetching user data:', error);
     }
-  };
+  }, [session?.user?.id]); // Add session?.user?.id as dependency
+
+  useEffect(() => {
+    fetchUserData();
+  }, [fetchUserData]);
 
   const handleImageClick = () => {
     if (fileInputRef.current) {
