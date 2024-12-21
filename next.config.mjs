@@ -2,6 +2,12 @@
 const nextConfig = {
   output: 'standalone', 
   reactStrictMode: true,
+  // Disable jsconfig paths plugin since you're using relative paths
+  experimental: {
+    // Add these for Lighthouse compatibility
+    serverComponents: true,
+    serverActions: true,
+  },
   images: {
     remotePatterns: [
       {
@@ -10,6 +16,19 @@ const nextConfig = {
       },
     ],
   },
+  // Add this for Lighthouse
+  webpack: (config) => {
+    config.resolve = {
+      ...config.resolve,
+      fallback: {
+        ...config.resolve.fallback,
+        fs: false,
+        path: false,
+        crypto: false,
+      }
+    }
+    return config;
+  },
 };
 
-export default nextConfig;
+module.exports = nextConfig;
