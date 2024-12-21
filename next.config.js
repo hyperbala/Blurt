@@ -4,9 +4,6 @@ const nextConfig = {
   reactStrictMode: true,
   // Disable jsconfig paths plugin since you're using relative paths
   experimental: {
-    // Add these for Lighthouse compatibility
-    serverComponents: true,
-    serverActions: true,
   },
   images: {
     remotePatterns: [
