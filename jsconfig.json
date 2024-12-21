@@ -2,13 +2,21 @@
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"],
+      "@/*": ["./*"],
       "@/components/*": ["components/*"],
       "@/lib/*": ["lib/*"],
-      "@/styles/*": ["styles/*"],
-      "@/utils/*": ["utils/*"],
-      "@/context/*": ["context/*"],
+      "@/contexts/*": ["contexts/*"],
+      "@/hooks/*": ["hooks/*"],
       "@/public/*": ["public/*"]
-    }
-  }
+    },
+    "jsx": "preserve"
+  },
+  "include": [
+    ".",
+    ".next/types/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    ".next"
+  ]
 }
