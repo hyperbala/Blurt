@@ -136,23 +136,32 @@ const CommentSection = ({ id, type, session }) => {
     }
   };
   
-  const UserAvatar = ({ user, size = 'large' }) => (
-    <Link 
-      href={`/profile/${user?._id}`}
-      className="flex-shrink-0 hover:opacity-80 transition-opacity"
-      onClick={(e) => e.stopPropagation()}
-    >
-      <Image 
-        src={user?.image || "/default-avatar.png"} 
-        alt={user?.name || 'Anonymous'} 
-        className="rounded-full object-cover"
-        fill
-        sizes={size === 'large' ? '40px' : '32px'}
-      />
-      
-    </Link>
-  );
-
+  const UserAvatar = ({ user, size = 'large' }) => {
+    // Define specific dimensions based on size
+    const dimensions = size === 'large' ? 40 : 32;
+    
+    return (
+      <Link 
+        href={`/profile/${user?._id}`}
+        className="flex-shrink-0 hover:opacity-80 transition-opacity relative"
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          width: dimensions,
+          height: dimensions
+        }}
+      >
+        <Image 
+          src={user?.image || "/default-avatar.png"} 
+          alt={user?.name || 'Anonymous'} 
+          className="rounded-full object-cover"
+          width={dimensions}
+          height={dimensions}
+          // Remove the fill prop
+        />
+      </Link>
+    );
+  };
+  
   const Username = ({ user }) => (
     <Link 
       href={`/profile/${user?._id}`}

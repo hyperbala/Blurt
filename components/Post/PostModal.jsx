@@ -1,7 +1,7 @@
 // components/Post/PostModal.jsx
 'use client'
 
-import React, { useEffect } from 'react';
+import React, { useEffect,useState } from 'react';
 import { User } from '@nextui-org/react';
 import Link from 'next/link';
 import { Heart, Bookmark, Share2, MessageCircle, X, ThumbsUp, Globe2 } from 'lucide-react';
@@ -172,9 +172,6 @@ const PostModal = ({
               </span>
             </div>
 
-            {/* Comments Section */}
-            {console.log(post.type)}
-            
             <CommentSection
               id={post._id || post.id}
               type={post.type || 'question'} 
