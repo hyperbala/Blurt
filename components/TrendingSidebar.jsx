@@ -31,7 +31,7 @@ const TrendingSidebar = ({ isMobile, onClose }) => {
   };
 
   const sidebarContent = (
-    <div className={`${isMobile ? 'pt-12' : 'sticky top-[100px]'} space-y-4`}>
+    <div className={`${isMobile ? 'pt-0' : 'sticky top-[100px]'} space-y-4`}>
       <div className="bg-white rounded-xl border border-gray-200">
         <div className="flex items-center justify-between p-4 border-b border-gray-200">
           <div className="flex items-center gap-2">

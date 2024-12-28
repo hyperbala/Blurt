@@ -2,28 +2,83 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { User } from '@nextui-org/react';
-import { Heart, Bookmark, Share2, MessageCircle, Globe2 } from 'lucide-react';
 import { useSession } from 'next-auth/react';
-import Image from 'next/image';
+import PostCard from '../Post/PostCard';
+import PostModal from '../Post/PostModal';
+import ActionButtons from '../Profile/ActionButtons';
+
 
 const SavedPosts = () => {
   const [items, setItems] = useState([]);
+  const [sortBy, setSortBy] = useState('new'); // Add this state
   const [likedItems, setLikedItems] = useState(new Set());
   const [savedItems, setSavedItems] = useState(new Set());
+  const [followingUsers, setFollowingUsers] = useState(new Set());
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedItem, setSelectedItem] = useState(null);
   const { data: session } = useSession();
 
   useEffect(() => {
     fetchSavedItems();
   }, []);
 
+  useEffect(() => {
+    const fetchFollowStatuses = async () => {
+      if (!session?.user) return;
+
+      try {
+        const newFollowingUsers = new Set();
+        await Promise.all(
+          items.map(async (item) => {
+            if (item.author?._id) {
+              const response = await fetch(`/api/users/follow/${item.author._id}`);
+              if (response.ok) {
+                const { isFollowing } = await response.json();
+                if (isFollowing) {
+                  newFollowingUsers.add(item.author._id);
+                }
+              }
+            }
+          })
+        );
+        setFollowingUsers(newFollowingUsers);
+      } catch (error) {
+        console.error('Error checking follow statuses:', error);
+      }
+    };
+
+    if (session?.user) {
+      fetchFollowStatuses();
+    }
+  }, [items, session]);
+  const sortItems = (items, sortType) => {
+    let sortedItems = [...items];
+    switch (sortType) {
+      case 'new':
+        sortedItems.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        break;
+      case 'old':
+        sortedItems.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+        break;
+      case 'liked':
+        sortedItems.sort((a, b) => (b.likes || 0) - (a.likes || 0));
+        break;
+      default:
+        break;
+    }
+    setItems(sortedItems);
+  };
+
+  const handleSortChange = (sortType) => {
+    setSortBy(sortType);
+    sortItems(items, sortType);
+  };
   const fetchSavedItems = async () => {
     try {
       const res = await fetch('/api/posts/saved');
       if (res.ok) {
         const data = await res.json();
-        setItems(data);
-        // Initialize liked and saved sets
+        sortItems(data, sortBy); // Sort the items immediately after fetching
         const newLikedItems = new Set(data.filter(item => item.isLiked).map(item => item._id));
         const newSavedItems = new Set(data.map(item => item._id));
         setLikedItems(newLikedItems);
@@ -34,10 +89,10 @@ const SavedPosts = () => {
     }
   };
 
-  const handleLike = async (itemId, type, e) => {
-    e.stopPropagation();
+  const handleLike = async (itemId, e) => {
+    e?.stopPropagation();
     try {
-      const res = await fetch(`/api/${type}/${itemId}/like`, {
+      const res = await fetch(`/api/posts/${itemId}/like`, {
         method: 'POST',
       });
 
@@ -62,15 +117,14 @@ const SavedPosts = () => {
     }
   };
 
-  const handleUnsave = async (itemId, type, e) => {
-    e.stopPropagation();
+  const handleSave = async (itemId, e) => {
+    e?.stopPropagation();
     try {
-      const res = await fetch(`/api/${type}/${itemId}/save`, {
+      const res = await fetch(`/api/posts/${itemId}/save`, {
         method: 'POST',
       });
 
       if (res.ok) {
-        // Remove the item from displayed items
         setItems(items => items.filter(item => item._id !== itemId));
         setSavedItems(prev => {
           const newSet = new Set(prev);
@@ -83,75 +137,87 @@ const SavedPosts = () => {
     }
   };
 
+  const handleFollow = async (authorId, e) => {
+    e?.stopPropagation();
+    if (!session?.user || session.user.id === authorId) return;
+
+    try {
+      const response = await fetch(`/api/users/follow/${authorId}`, {
+        method: 'POST',
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        console.error('Error following user:', data.error);
+        return;
+      }
+
+      setFollowingUsers(prev => {
+        const newSet = new Set(prev);
+        if (data.isFollowing) {
+          newSet.add(authorId);
+        } else {
+          newSet.delete(authorId);
+        }
+        return newSet;
+      });
+
+    } catch (error) {
+      console.error('Error following user:', error);
+    }
+  };
+
+  const handleCardClick = (item) => {
+    setSelectedItem(item);
+    setIsModalOpen(true);
+    document.body.style.overflow = 'hidden';
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setSelectedItem(null);
+    document.body.style.overflow = 'auto';
+  };
+
   return (
-    <div className="w-full">
+    <div className="w-full max-w-2xl mx-auto">
+      <ActionButtons onSortChange={handleSortChange} />
       {items.length === 0 ? (
         <div className="text-center py-8">
           <p className="text-gray-600">No saved items yet.</p>
         </div>
       ) : (
         items.map((item) => (
-          <div
+          <PostCard
             key={item._id}
-            className="bg-white border rounded-xl shadow-sm mb-4 hover:shadow-md transition-all duration-200"
-          >
-            <div className="p-4">
-              <div className="flex items-center justify-between mb-4">
-                <User
-                  name={item.author?.name || "Anonymous"}
-                  description={item.author?.username ? `@${item.author.username.toLowerCase().replace(' ', '')}` : '@anonymous'}
-                  avatarProps={{
-                    src: item?.author?.image
-                  }}
-                />
-                <div className="flex items-center space-x-1 bg-green-50 rounded-full px-2 py-1">
-                  <Globe2 className="w-3 h-3 text-green-600" />
-                  <span className="text-xs text-green-700">Public</span>
-                </div>
-              </div>
-
-              <h2 className="text-xl font-semibold mb-2 text-gray-800">{item.title || 'Untitled Item'}</h2>
-
-              {item.image && (
-                <div className="relative aspect-video mb-4 bg-gray-50 rounded-lg overflow-hidden">
-                  <Image
-                    src={item.image}
-                    alt={item.title || 'Saved item'}
-                    fill
-                    className="object-cover"
-                    sizes="(max-width: 768px) 100vw, 50vw"
-                    priority={false}
-                  />
-                </div>
-              )}
-
-              <p className="text-gray-600 mb-4 line-clamp-3">{item.content}</p>
-
-              <div className="flex items-center justify-between text-sm text-gray-500 px-4">
-                <span>{new Date(item.createdAt).toLocaleString()}</span>
-                <div className="flex items-center space-x-4">
-                  <button
-                    className={`flex items-center gap-2 ${likedItems.has(item._id) ? 'text-green-600' : 'hover:text-green-600'}`}
-                    onClick={(e) => handleLike(item._id, item.type, e)}
-                  >
-                    <Heart className={`w-4 h-4 ${likedItems.has(item._id) ? 'fill-current' : ''}`} />
-                    <span>{item.likes || 0}</span>
-                  </button>
-                  <button
-                    className="flex items-center space-x-1 text-green-600"
-                    onClick={(e) => handleUnsave(item._id, item.type, e)}
-                  >
-                    <Bookmark className="w-4 h-4 fill-current" />
-                  </button>
-                  <button className="flex items-center gap-2 hover:text-green-600">
-                    <MessageCircle className="w-4 h-4" />
-                    <span>{item.comments?.length || 0}</span>
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
+            item={item}
+            session={session}
+            likedItems={likedItems}
+            savedItems={savedItems}
+            followingUsers={followingUsers}
+            handleLike={handleLike}
+            handleSave={handleSave}
+            handleFollow={handleFollow}
+            onClick={() => handleCardClick(item)}
+          />
         ))
+      )}
+
+
+      {isModalOpen && selectedItem && (
+        <PostModal
+          isOpen={isModalOpen}
+          onClose={closeModal}
+          post={selectedItem}
+          session={session}
+          likedPosts={likedItems}
+          savedPosts={savedItems}
+          handleLike={handleLike}
+          handleSave={handleSave}
+          setPosts={setItems}
+          followingUsers={followingUsers}
+          handleFollow={handleFollow}
+        />
       )}
     </div>
   );

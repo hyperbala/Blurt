@@ -3,28 +3,37 @@ import Link from 'next/link';
 import { User, FileText, HelpCircle } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { useState, useEffect, useRef } from 'react';
+import TrendingSidebar from './TrendingSidebar';
 
 export default function BottomNavigation() {
   const pathname = usePathname();
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isTrendingOpen, setIsTrendingOpen] = useState(false);
   const modalRef = useRef(null);
+  const trendingModalRef = useRef(null);
 
-  // Function to toggle modal
+  // Function to toggle menu modal
   const toggleModal = () => {
     setIsModalOpen(!isModalOpen);
+    setIsTrendingOpen(false);
+  };
+
+  // Function to toggle trending modal
+  const toggleTrending = () => {
+    setIsTrendingOpen(!isTrendingOpen);
+    setIsModalOpen(false);
   };
 
   // Handle click outside or touch
   useEffect(() => {
     const handleOutsideClick = (event) => {
-      // Close if clicking outside or clicking the toggle button again
-      if (!modalRef.current?.contains(event.target)) {
+      if (!modalRef.current?.contains(event.target) && !trendingModalRef.current?.contains(event.target)) {
         setIsModalOpen(false);
+        setIsTrendingOpen(false);
       }
     };
 
-    if (isModalOpen) {
-      // Add both mouse and touch events
+    if (isModalOpen || isTrendingOpen) {
       document.addEventListener('mousedown', handleOutsideClick);
       document.addEventListener('touchstart', handleOutsideClick);
       document.body.style.overflow = 'hidden';
@@ -35,7 +44,7 @@ export default function BottomNavigation() {
       document.removeEventListener('touchstart', handleOutsideClick);
       document.body.style.overflow = 'unset';
     };
-  }, [isModalOpen]);
+  }, [isModalOpen, isTrendingOpen]);
 
   return (
     <>
@@ -91,6 +100,24 @@ export default function BottomNavigation() {
         </div>
       </div>
 
+      {/* Trending Modal */}
+<div 
+  className={`fixed inset-0 bg-black/40 backdrop-blur-sm z-50 transition-all duration-300 ease-in-out
+    ${isTrendingOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+>
+  <div className="flex items-center justify-center min-h-screen p-4">
+    <div 
+      ref={trendingModalRef}
+      className={`w-full transform transition-all duration-300 ease-in-out
+        ${isTrendingOpen ? 'scale-100 opacity-100' : 'scale-95 opacity-0'}
+        bg-white rounded-2xl shadow-2xl overflow-hidden`}
+      style={{ maxWidth: '430px', maxHeight: '90vh' }}
+    >
+      <TrendingSidebar isMobile={true} onClose={() => setIsTrendingOpen(false)} />
+    </div>
+  </div>
+</div>
+
       {/* Bottom Navigation Bar */}
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t xl:hidden z-40 shadow-lg">
         <div className="flex justify-around items-center h-16 px-4 max-w-md mx-auto">
@@ -116,13 +143,16 @@ export default function BottomNavigation() {
           </button>
 
           <button 
-            className="p-3 text-gray-600 rounded-lg transition-all duration-200 active:bg-gray-100"
+            className={`p-3 rounded-lg transition-all duration-200 active:bg-gray-100
+              ${isTrendingOpen ? 'text-blue-600' : 'text-gray-600'}`}
+            onClick={toggleTrending}
             aria-label="Trending"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
             </svg>
           </button>
+
         </div>
       </div>
     </>

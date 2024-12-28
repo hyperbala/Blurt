@@ -16,12 +16,14 @@ export async function GET(req, { params }) {
     }
 
     const question = await Question.findById(questionId)
-      .populate('comments.author', 'name image username');
+      .populate('comments.author', 'name image username')
+      .populate('comments.replies.author', 'name image username');
 
     if (!question) {
       return NextResponse.json({ error: 'Question not found' }, { status: 404 });
     }
 
+    // Format the comments for display
     const formattedComments = question.comments.map(comment => ({
       ...comment.toObject(),
       createdAt: comment.createdAt.toISOString(),
@@ -30,7 +32,17 @@ export async function GET(req, { params }) {
         name: comment.author?.name || 'Anonymous',
         image: comment.author?.image || '/default-avatar.png',
         username: comment.author?.username
-      }
+      },
+      replies: comment.replies?.map(reply => ({
+        ...reply.toObject(),
+        createdAt: reply.createdAt.toISOString(),
+        author: {
+          _id: reply.author?._id,
+          name: reply.author?.name || 'Anonymous',
+          image: reply.author?.image || '/default-avatar.png',
+          username: reply.author?.username
+        }
+      }))
     }));
 
     return NextResponse.json(formattedComments, { status: 200 });
@@ -65,18 +77,36 @@ export async function POST(req, { params }) {
       _id: new mongoose.Types.ObjectId(),
       content,
       author: new mongoose.Types.ObjectId(session.user.id),
-      createdAt: new Date()
+      createdAt: new Date(),
+      likes: {
+        count: 0,
+        likedBy: []
+      },
+      replies: []
     };
 
-    question.comments.push(newComment);
+    if (parentCommentId) {
+      const parentComment = question.comments.id(parentCommentId);
+      if (!parentComment) {
+        return NextResponse.json({ error: 'Parent comment not found' }, { status: 404 });
+      }
+      parentComment.replies.push(newComment);
+    } else {
+      question.comments.push(newComment);
+    }
 
     await question.save();
 
+    // Fetch the populated comment to return
     const savedQuestion = await Question.findById(questionId)
-      .populate('comments.author', 'name image username');
+      .populate('comments.author', 'name image username')
+      .populate('comments.replies.author', 'name image username');
 
-    const savedComment = savedQuestion.comments.slice(-1)[0];
+    const savedComment = parentCommentId
+      ? savedQuestion.comments.id(parentCommentId).replies.slice(-1)[0]
+      : savedQuestion.comments.slice(-1)[0];
 
+    // Format the comment for response
     const formattedComment = {
       ...savedComment.toObject(),
       createdAt: savedComment.createdAt.toISOString(),

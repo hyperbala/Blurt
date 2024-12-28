@@ -238,9 +238,6 @@ const CommentSection = ({ id, type, session }) => {
                     {comment.likes?.count > 0 && (
                       <span className="text-xs text-gray-500">{comment.likes.count}</span>
                     )}
-                    <button className="p-1.5 rounded-full hover:bg-gray-100 text-gray-500">
-                      <ThumbsDown className="w-4 h-4" />
-                    </button>
                   </div>
                   {session?.user && (
                     <button
@@ -317,9 +314,6 @@ const CommentSection = ({ id, type, session }) => {
                               {reply.likes?.count > 0 && (
                                 <span className="text-xs text-gray-500">{reply.likes.count}</span>
                               )}
-                              <button className="p-1.5 rounded-full hover:bg-gray-100 text-gray-500">
-                                <ThumbsDown className="w-4 h-4" />
-                              </button>
                             </div>
                             {session?.user && (
                               <button

@@ -2,330 +2,252 @@
 'use client';
 
 import React, { useEffect, useState, useCallback } from 'react';
-import { User } from '@nextui-org/react';
-import { Heart, Bookmark, Share2, MessageCircle, X, Globe2 } from 'lucide-react';
+import { useSession } from "next-auth/react";
 import ActionButtons from '../Profile/ActionButtons';
-import Image from 'next/image';
+import PostCard from '../Post/PostCard';
+import PostModal from '../Post/PostModal';
+
+const toggleScroll = (disable) => {
+  if (disable) {
+    document.body.style.overflow = 'hidden';
+  } else {
+    document.body.style.overflow = 'auto';
+  }
+};
 
 const LikedPosts = () => {
-    const [likedItems, setLikedItems] = useState([]);
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [selectedItem, setSelectedItem] = useState(null);
-    const [comment, setComment] = useState('');
-    const [likedItemsSet, setLikedItemsSet] = useState(new Set());
-    const [savedItems, setSavedItems] = useState(new Set());
-    const [sortBy, setSortBy] = useState('new');
-    const [loading, setLoading] = useState(true);
+  const [likedItems, setLikedItems] = useState([]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedItem, setSelectedItem] = useState(null);
+  const [likedItemsSet, setLikedItemsSet] = useState(new Set());
+  const [savedItems, setSavedItems] = useState(new Set());
+  const [sortBy, setSortBy] = useState('new');
+  const [loading, setLoading] = useState(true);
+  const [followingUsers, setFollowingUsers] = useState(new Set());
+  const { data: session } = useSession();
 
-    const fetchLikedItems = useCallback(async () => {
-        try {
-            setLoading(true);
-            const response = await fetch('/api/users/liked-posts');
-            if (!response.ok) {
-                throw new Error('Failed to fetch liked items');
-            }
-            const data = await response.json();
-            sortItems(data, sortBy);
-            setLikedItemsSet(new Set(data.map(item => item._id)));
-        } catch (error) {
-            console.error('Error fetching liked items:', error);
-        } finally {
-            setLoading(false);
+  const handleFollow = async (authorId, e) => {
+    e?.stopPropagation();
+    if (!session?.user || session.user.id === authorId) return;
+
+    try {
+      const response = await fetch(`/api/users/follow/${authorId}`, {
+        method: 'POST',
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        console.error('Error following user:', data.error);
+        return;
+      }
+
+      setFollowingUsers(prev => {
+        const newSet = new Set(prev);
+        if (data.isFollowing) {
+          newSet.add(authorId);
+        } else {
+          newSet.delete(authorId);
         }
-    }, [sortBy]); // Add sortBy as a dependency since it's used in the function
+        return newSet;
+      });
 
-    useEffect(() => {
-        fetchLikedItems();
-    }, [fetchLikedItems]);
+    } catch (error) {
+      console.error('Error following user:', error);
+    }
+  };
 
-    const sortItems = (items, sortType) => {
-        let sortedItems = [...items];
-        switch (sortType) {
-            case 'new':
-                sortedItems.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-                break;
-            case 'old':
-                sortedItems.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
-                break;
-            case 'liked':
-                sortedItems.sort((a, b) => (b.likes || 0) - (a.likes || 0));
-                break;
-            default:
-                break;
-        }
-        setLikedItems(sortedItems);
-    };
+  useEffect(() => {
+    const fetchFollowStatuses = async () => {
+      if (!session?.user) return;
 
-    const handleSortChange = (sortType) => {
-        setSortBy(sortType);
-        sortItems(likedItems, sortType);
-    };
+      try {
+        const newFollowingUsers = new Set();
 
-    const handleLike = async (itemId, type, e) => {
-        e.stopPropagation();
-        try {
-            const res = await fetch(`/api/${type}/${itemId}/like`, {
-                method: 'POST',
-            });
-
-            if (res.ok) {
-                const { likes, hasLiked } = await res.json();
-                setLikedItems(likedItems.map(item =>
-                    item._id === itemId
-                        ? { ...item, likes }
-                        : item
-                ));
-
-                setLikedItemsSet(prev => {
-                    const newSet = new Set(prev);
-                    if (hasLiked) {
-                        newSet.add(itemId);
-                    } else {
-                        newSet.delete(itemId);
-                    }
-                    return newSet;
-                });
-
-                if (selectedItem?._id === itemId) {
-                    setSelectedItem(prev => ({ ...prev, likes }));
+        await Promise.all(
+          likedItems.map(async (item) => {
+            if (item.author?._id) {
+              const response = await fetch(`/api/users/follow/${item.author._id}`);
+              if (response.ok) {
+                const { isFollowing } = await response.json();
+                if (isFollowing) {
+                  newFollowingUsers.add(item.author._id);
                 }
+              }
             }
-        } catch (error) {
-            console.error('Error liking item:', error);
-        }
+          })
+        );
+
+        setFollowingUsers(newFollowingUsers);
+      } catch (error) {
+        console.error('Error checking follow statuses:', error);
+      }
     };
 
-    const handleSave = async (itemId, type, e) => {
-        e.stopPropagation();
-        try {
-            const res = await fetch(`/api/${type}/${itemId}/save`, {
-                method: 'POST',
-            });
+    if (session?.user) {
+      fetchFollowStatuses();
+    }
+  }, [likedItems, session]);
 
-            if (res.ok) {
-                const { isSaved } = await res.json();
-                setSavedItems(prev => {
-                    const newSet = new Set(prev);
-                    if (isSaved) {
-                        newSet.add(itemId);
-                    } else {
-                        newSet.delete(itemId);
-                    }
-                    return newSet;
-                });
-            }
-        } catch (error) {
-            console.error('Error saving item:', error);
-        }
-    };
+  const fetchLikedItems = useCallback(async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('/api/users/liked-posts');
+      if (!response.ok) {
+        throw new Error('Failed to fetch liked items');
+      }
+      const data = await response.json();
+      sortItems(data, sortBy);
+      setLikedItemsSet(new Set(data.map(item => item._id)));
+    } catch (error) {
+      console.error('Error fetching liked items:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [sortBy]);
 
-    const handleCardClick = (item) => {
-        setSelectedItem(item);
-        setIsModalOpen(true);
-    };
+  useEffect(() => {
+    fetchLikedItems();
+  }, [fetchLikedItems]);
 
-    const closeModal = () => {
-        setIsModalOpen(false);
-        setSelectedItem(null);
-        setComment('');
-    };
+  const sortItems = (items, sortType) => {
+    let sortedItems = [...items];
+    switch (sortType) {
+      case 'new':
+        sortedItems.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        break;
+      case 'old':
+        sortedItems.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+        break;
+      case 'liked':
+        sortedItems.sort((a, b) => (b.likes || 0) - (a.likes || 0));
+        break;
+      default:
+        break;
+    }
+    setLikedItems(sortedItems);
+  };
 
-    const handleCommentSubmit = async (itemId, type) => {
-        try {
-            const res = await fetch(`/api/${type}/${itemId}/comments`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ content: comment }),
-            });
+  const handleSortChange = (sortType) => {
+    setSortBy(sortType);
+    sortItems(likedItems, sortType);
+  };
 
-            if (res.ok) {
-                const newComment = await res.json();
-                setLikedItems(likedItems.map(item =>
-                    item._id === itemId
-                        ? { ...item, comments: [...(item.comments || []), newComment] }
-                        : item
-                ));
-                setSelectedItem(prevItem => ({
-                    ...prevItem,
-                    comments: [...(prevItem.comments || []), newComment],
-                }));
-                setComment('');
-            }
-        } catch (error) {
-            console.error('Error adding comment:', error);
-        }
-    };
+  const handleLike = async (itemId, e) => {
+    e?.stopPropagation();
+    try {
+      const res = await fetch(`/api/posts/${itemId}/like`, {
+        method: 'POST',
+      });
 
-    if (loading) return <p>Loading items...</p>;
-    return (
-        <div className="w-full max-w-2xl mx-auto">
-            <ActionButtons onSortChange={handleSortChange} />
-            {likedItems.length === 0 ? (
-                <p className="text-gray-600">No liked items yet.</p>
-            ) : (
-                likedItems.map((item) => (
-                    <div
-                        key={item._id}
-                        className="bg-white border rounded-xl shadow-sm mb-4 hover:shadow-md transition-all duration-200 cursor-pointer"
-                        onClick={() => handleCardClick(item)}
-                    >
-                        <div className="p-4">
-                            <div className="flex items-center justify-between mb-4">
-                                <User
-                                    name={item.author?.name || "Anonymous"}
-                                    description={item.author?.username ? `@${item.author.username.toLowerCase().replace(' ', '')}` : '@anonymous'}
-                                    avatarProps={{
-                                        src: item?.author?.image
-                                    }}
-                                />
-                                <div className="flex items-center space-x-1 bg-green-50 rounded-full px-2 py-1">
-                                    <Globe2 className="w-3 h-3 text-green-600" />
-                                    <span className="text-xs text-green-700">Public</span>
-                                </div>
-                            </div>
+      if (res.ok) {
+        const { likes, hasLiked } = await res.json();
+        setLikedItems(likedItems.map(item =>
+          item._id === itemId
+            ? { ...item, likes }
+            : item
+        ));
 
-                            <h2 className="text-xl font-semibold mb-2 text-gray-800">{item.title || 'Untitled Item'}</h2>
+        setLikedItemsSet(prev => {
+          const newSet = new Set(prev);
+          if (hasLiked) {
+            newSet.add(itemId);
+          } else {
+            newSet.delete(itemId);
+          }
+          return newSet;
+        });
 
-                            {item.image && (
-                                <div className="relative aspect-video mb-4 bg-gray-50 rounded-lg overflow-hidden">
-                                    <Image
-                                        src={item.image}
-                                        alt={item.title || 'Post image'}
-                                        fill
-                                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                                        className="object-cover"
-                                        priority={false}
-                                    />
+        return { success: true, likes };
+      }
+    } catch (error) {
+      console.error('Error liking item:', error);
+      return { success: false };
+    }
+  };
 
-                                </div>
-                            )}
+  const handleSave = async (itemId, e) => {
+    e?.stopPropagation();
+    try {
+      const res = await fetch(`/api/posts/${itemId}/save`, {
+        method: 'POST',
+      });
 
-                            <p className="text-gray-600 mb-4 line-clamp-3">{item.content}</p>
+      if (res.ok) {
+        const { isSaved, savedCount } = await res.json();
+        setSavedItems(prev => {
+          const newSet = new Set(prev);
+          if (isSaved) {
+            newSet.add(itemId);
+          } else {
+            newSet.delete(itemId);
+          }
+          return newSet;
+        });
+        return { success: true, savedCount };
+      }
+    } catch (error) {
+      console.error('Error saving item:', error);
+      return { success: false };
+    }
+  };
 
-                            <div className="flex items-center justify-between text-sm text-gray-500 p-4">
-                                <span>{new Date(item.createdAt).toLocaleString()}</span>
-                                <div className="flex items-center space-x-4">
-                                    <button
-                                        className={`flex items-center space-x-1 ${likedItemsSet.has(item._id) ? 'text-green-600' : 'hover:text-green-600'}`}
-                                        onClick={(e) => handleLike(item._id, item.type, e)}
-                                    >
-                                        <Heart className={`w-4 h-4 ${likedItemsSet.has(item._id) ? 'fill-current' : ''}`} />
-                                        <span>{item.likes || 0}</span>
-                                    </button>
-                                    <button
-                                        className={`flex items-center space-x-1 ${savedItems.has(item._id) ? 'text-green-600' : 'hover:text-green-600'}`}
-                                        onClick={(e) => handleSave(item._id, item.type, e)}
-                                    >
-                                        <Bookmark className={`w-4 h-4 ${savedItems.has(item._id) ? 'fill-current' : ''}`} />
-                                    </button>
-                                    <button className="flex items-center space-x-1 hover:text-green-600">
-                                        <MessageCircle className="w-4 h-4" />
-                                        <span>{(item.comments?.length || 0)}</span>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                ))
-            )}
+  const handleCardClick = (item) => {
+    setSelectedItem(item);
+    setIsModalOpen(true);
+    toggleScroll(true);
+  };
 
-            {isModalOpen && selectedItem && (
-                <div className="fixed inset-0 flex items-center justify-center p-4 z-50 bg-black/20">
-                    <div className="bg-white w-full max-w-2xl rounded-lg shadow-xl max-h-[90vh] flex flex-col">
-                        <div className="flex items-center justify-between p-4 border-b">
-                            <h3 className="text-lg font-semibold text-gray-800">Item Details</h3>
-                            <button
-                                onClick={closeModal}
-                                className="p-1 hover:bg-gray-100 rounded-full transition-colors duration-200"
-                            >
-                                <X className="w-5 h-5 text-gray-500" />
-                            </button>
-                        </div>
-                        <div className="p-4">
-                            <User
-                                name={selectedItem.author?.name || "Anonymous"}
-                                description={`@${selectedItem.author?.name?.toLowerCase().replace(' ', '') || 'anonymous'}`}
-                                avatarProps={{
-                                    src: selectedItem.author?.avatar || "https://i.pravatar.cc/150?u=anonymous",
-                                }}
-                            />
-                            <h2 className="text-2xl font-semibold mb-4">{selectedItem.title}</h2>
-                            {selectedItem.image && (
-                                <div className="relative aspect-video mb-4 bg-gray-100 rounded-lg overflow-hidden">
-                                    <Image
-                                        src={selectedItem.image}
-                                        alt={selectedItem.title || 'Post image'}
-                                        fill
-                                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                                        className="object-cover"
-                                        priority={false}
-                                    />
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setSelectedItem(null);
+    toggleScroll(false);
+  };
 
-                                </div>
-                            )}
-                            <p className="text-gray-700 mb-6 leading-relaxed">{selectedItem.content}</p>
-
-                            <div className="flex space-x-6">
-                                <button
-                                    className={`flex items-center space-x-2 ${likedItemsSet.has(selectedItem._id) ? 'text-green-600' : 'text-gray-600 hover:text-green-600'
-                                        } transition-colors duration-200`}
-                                    onClick={(e) => handleLike(selectedItem._id, selectedItem.type, e)}
-                                >
-                                    <Heart className={`w-5 h-5 ${likedItemsSet.has(selectedItem._id) ? 'fill-current' : ''}`} />
-                                    <span>Like</span>
-                                </button>
-                                <button
-                                    className={`flex items-center space-x-2 ${savedItems.has(selectedItem._id) ? 'text-green-600' : 'text-gray-600 hover:text-green-600'
-                                        } transition-colors duration-200`}
-                                    onClick={(e) => handleSave(selectedItem._id, selectedItem.type, e)}
-                                >
-                                    <Bookmark className={`w-5 h-5 ${savedItems.has(selectedItem._id) ? 'fill-current' : ''}`} />
-                                    <span>Save</span>
-                                </button>
-                                <button className="flex items-center space-x-2 text-gray-600 hover:text-green-600 transition-colors duration-200">
-                                    <Share2 className="w-5 h-5" />
-                                    <span>Share</span>
-                                </button>
-                            </div>
-                        </div>
-
-                        <div className="p-4 border-t">
-                            <h4 className="text-lg font-semibold mb-2">Comments</h4>
-                            <div className="mb-4">
-                                {selectedItem.comments?.map((comment) => (
-                                    <div key={comment._id} className="border-b py-2">
-                                        <User
-                                            name={comment.author.name}
-                                            description={`@${comment.author.name.toLowerCase().replace(' ', '')}`}
-                                            avatarProps={{
-                                                src: comment.author.avatar || "https://i.pravatar.cc/150?u=anonymous",
-                                            }}
-                                        />
-                                        <p className="text-gray-600">{comment.content}</p>
-                                    </div>
-                                )) || <p className="text-gray-600">No comments yet.</p>}
-                            </div>
-                            <div className="flex">
-                                <input
-                                    type="text"
-                                    placeholder="Add a comment..."
-                                    className="border rounded-lg p-2 flex-1"
-                                    value={comment}
-                                    onChange={(e) => setComment(e.target.value)}
-                                />
-                                <button
-                                    className="bg-green-600 text-white rounded-lg px-4 ml-2"
-                                    onClick={() => handleCommentSubmit(selectedItem._id, selectedItem.type)}
-                                >
-                                    Post
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
+  return (
+    <div className="w-full max-w-2xl mx-auto">
+      <ActionButtons onSortChange={handleSortChange} />
+      {loading ? (
+        <div className="text-center py-8">
+          <p className="text-gray-600">Loading items...</p>
         </div>
-    );
+      ) : likedItems.length === 0 ? (
+        <div className="text-center py-8">
+          <p className="text-gray-600">No liked items yet.</p>
+        </div>
+      ) : (
+        likedItems.map((item) => (
+          <PostCard
+            key={item._id}
+            item={item}
+            session={session}
+            likedItems={likedItemsSet}
+            savedItems={savedItems}
+            followingUsers={followingUsers}
+            handleLike={handleLike}
+            handleSave={handleSave}
+            handleFollow={handleFollow}
+            onClick={() => handleCardClick(item)}
+          />
+        ))
+      )}
+
+      {isModalOpen && selectedItem && (
+        <PostModal
+          isOpen={isModalOpen}
+          onClose={closeModal}
+          post={selectedItem}
+          session={session}
+          likedPosts={likedItemsSet}
+          savedPosts={savedItems}
+          handleLike={handleLike}
+          handleSave={handleSave}
+          setPosts={setLikedItems}
+          followingUsers={followingUsers}
+          handleFollow={handleFollow}
+        />
+      )}
+    </div>
+  );
 };
 
 export default LikedPosts;

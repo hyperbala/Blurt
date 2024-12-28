@@ -12,7 +12,7 @@ const LeftSidebar = ({ isMobile, onClose }) => {
     { icon: Home, label: 'Home', href: '/' },
     { icon: User, label: 'Profile', href: '/profile' },
     { icon: FileText, label: 'Posts', href: '/post' },
-    { icon: HelpCircle, label: 'Questions', href: '/questions' }
+    { icon: HelpCircle, label: 'Questions', href: '/question' }
   ];
 
   const sidebarContent = (

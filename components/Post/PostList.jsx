@@ -10,6 +10,7 @@ import PostModal from './PostModal';
 import { useInteractions } from '../../hooks/useInteractions';
 import { formatDistanceToNowStrict } from 'date-fns';
 import Image from 'next/image';
+import Link from 'next/link';
 
 const toggleScroll = (disable) => {
   if (disable) {
@@ -247,10 +248,12 @@ const PostList = ({ type = 'all', showAll = true }) => {
                     src: post.author?.image
                   }}
                 />
-                <div className="flex items-center space-x-1 bg-green-50 rounded-full px-2 py-1">
-                  <Globe2 className="w-3 h-3 text-green-600" />
-                  <span className="text-xs text-green-700">Public</span>
-                </div>
+                <Link href={`/${post?.type}`}>
+                  <div className="flex items-center space-x-1 bg-green-50 rounded-full px-2 py-1">
+                    <Globe2 className="w-3 h-3 text-green-600" />
+                    <span className="text-xs text-green-700">{post?.type}</span>
+                  </div>
+                </Link>
               </div>
               <button
                 className={`px-4 py-1.5 text-sm font-medium ${session?.user?.id === post.author?._id

@@ -12,13 +12,14 @@ export const authOptions = {
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
     }),
   ],
+  // Modify the jwt callback in your authOptions
   callbacks: {
     async jwt({ token, user, account, trigger, session }) {
       if (account) {
         try {
           await connectToDB();
           const existingUser = await User.findOne({ email: token.email });
-          
+
           if (existingUser) {
             token.userId = existingUser._id.toString();
             token.hasCompletedOnboarding = existingUser.hasCompletedOnboarding;
@@ -38,23 +39,25 @@ export const authOptions = {
         }
       }
 
-      if (trigger === "update" && session) {
-        token.hasCompletedOnboarding = session.hasCompletedOnboarding;
+      // Handle session updates
+      if (trigger === "update") {
         return { ...token, ...session };
       }
 
       return token;
     },
+
     async session({ session, token }) {
       if (token) {
         session.user.id = token.userId;
         session.user.hasCompletedOnboarding = token.hasCompletedOnboarding;
-        
+
         try {
           await connectToDB();
           const user = await User.findById(token.userId);
           if (user) {
             session.user.username = user.username;
+            session.user.name = user.name;
             session.user.hasCompletedOnboarding = user.hasCompletedOnboarding;
           }
         } catch (error) {
@@ -63,12 +66,14 @@ export const authOptions = {
       }
       return session;
     },
+
     async redirect({ url, baseUrl, token }) {
+      // Only redirect to username-select if explicitly not completed onboarding
       if (url.startsWith(baseUrl)) {
-        if (!token?.hasCompletedOnboarding) {
+        if (token?.hasCompletedOnboarding === false) {
           return `${baseUrl}/auth/username-select`;
         }
-        return baseUrl;
+        return url; // Return the original URL if hasCompletedOnboarding is true or undefined
       }
       return baseUrl;
     }

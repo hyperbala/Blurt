@@ -14,6 +14,10 @@ const replySchema = new mongoose.Schema({
   createdAt: {
     type: Date,
     default: Date.now
+  },
+  likes: {
+    count: { type: Number, default: 0 },
+    likedBy: [{ type: String }] // Store user IDs who liked the reply
   }
 });
 
@@ -30,6 +34,11 @@ const CommentSchema = new mongoose.Schema({
   createdAt: {
     type: Date,
     default: Date.now
+  },
+  
+  likes: {
+    count: { type: Number, default: 0 },
+    likedBy: [{ type: String }] // Store user IDs who liked the reply
   },
   replies: [replySchema]
 });

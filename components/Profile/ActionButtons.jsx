@@ -6,9 +6,6 @@ import { Dropdown, DropdownTrigger, DropdownMenu, DropdownItem } from "@nextui-o
 const ActionButtons = ({ onSortChange }) => {
   return (
     <div className="flex gap-3 mb-6">
-      <button className="px-4 py-2 bg-white border border-green-200 rounded-full text-sm text-green-700 hover:bg-green-50 transition-colors flex items-center gap-1">
-        <span>+</span> Create Post
-      </button>
       
       <Dropdown>
         <DropdownTrigger>

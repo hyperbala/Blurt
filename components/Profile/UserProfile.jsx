@@ -3,8 +3,10 @@
 import { useState, useEffect, useRef ,useCallback} from 'react';
 import { useSession } from 'next-auth/react';
 import Image from 'next/image';
-import { Camera } from 'lucide-react';
+import { Camera, Pen } from 'lucide-react'; // Add Pen to imports
 import FollowModal from './FollowModal';
+import EditProfileModal from './EditProfileModal'; // Add this import
+
 
 export default function UserProfile() {
   const { data: session, update: updateSession } = useSession();
@@ -17,7 +19,24 @@ export default function UserProfile() {
   const [showFollowers, setShowFollowers] = useState(false);
   const [showFollowing, setShowFollowing] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [showEditProfile, setShowEditProfile] = useState(false);
   const fileInputRef = useRef(null);
+
+  const handleProfileUpdate = async (updatedUser) => {
+    if (!session?.user) return;
+    
+    await updateSession({
+      ...session,
+      user: {
+        ...session.user,
+        name: updatedUser.name,
+        username: updatedUser.username
+      }
+    });
+    
+    // Refresh user data
+    fetchUserData();
+  };
 
 
   const fetchUserData = useCallback(async () => {
@@ -146,9 +165,17 @@ export default function UserProfile() {
         />
       </div>
 
-      <h1 className="text-2xl font-bold text-gray-900 mb-2">
-        {userData?.name || "Anonymous"}
-      </h1>
+      <div className="flex items-center gap-2 mb-2">
+        <h1 className="text-2xl font-bold text-gray-900">
+          {userData?.name || "Anonymous"}
+        </h1>
+        <button
+          onClick={() => setShowEditProfile(true)}
+          className="flex items-center gap-1 text-gray-500 hover:text-gray-700"
+        >
+          <Pen size={16} />
+        </button>
+      </div>
       <p className="text-gray-500 mb-4">
         @{userData?.username || session?.user?.email?.split('@')[0]}
       </p>
@@ -172,6 +199,16 @@ export default function UserProfile() {
       </div>
 
       {/* Modals */}
+
+      <EditProfileModal
+        isOpen={showEditProfile}
+        onClose={() => setShowEditProfile(false)}
+        currentName={userData?.name}
+        currentUsername={userData?.username}
+        onSave={handleProfileUpdate}
+      />
+
+
       <FollowModal
         isOpen={showFollowers}
         onClose={() => setShowFollowers(false)}

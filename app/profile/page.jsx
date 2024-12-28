@@ -59,10 +59,10 @@ export default function Home() {
             <TrendingSidebar />
           </div>
         </div>
+      <BottomNavigation />
       </TopicProvider>
       
       {/* Use the BottomNavigation component */}
-      <BottomNavigation />
     </main>
   );
 }

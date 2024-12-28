@@ -5,7 +5,7 @@ import { signIn } from 'next-auth/react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-
+import upavana from '../../../public/logo/upavana.svg';
 export default function SignIn() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -32,7 +32,7 @@ export default function SignIn() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="max-w-md w-full space-y-8 p-8 bg-white rounded-lg shadow">
         <div className="text-center">
-          <Image src="../logo/upavana.svg" alt="Upavana" width={1} height={1} className="mx-auto h-28 w-auto" />
+        <Image src={upavana} alt="Upavana" width={1} height={1} className="mx-auto h-28 w-auto" />
           <h2 className="mt-6 text-3xl font-bold text-gray-900">
             Sign in to your account
           </h2>
@@ -47,7 +47,6 @@ export default function SignIn() {
           ) : (
             <>
               <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
-                {/* Add Google icon SVG here */}
               </svg>
               Continue with Google
             </>
