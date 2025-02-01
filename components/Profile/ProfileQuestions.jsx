@@ -5,6 +5,7 @@ import { useSession } from 'next-auth/react';
 import PostCard from '../Post/PostCard';
 import PostModal from 'components/Post/PostModal';
 import ActionButtons from '../Profile/ActionButtons';
+import DeleteModal from '../Post/DeleteModal'; 
 
 const ProfileQuestions = ({ userId }) => {
   const { data: session, status } = useSession();
@@ -15,6 +16,9 @@ const ProfileQuestions = ({ userId }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedQuestion, setSelectedQuestion] = useState(null);
   const [followingUsers, setFollowingUsers] = useState(new Set());
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [questionToDelete, setQuestionToDelete] = useState(null);
+
 
   // Add sorting function
   const sortQuestions = (questionsToSort, sortType) => {
@@ -211,6 +215,42 @@ const ProfileQuestions = ({ userId }) => {
     }
   };
 
+  const handleDeleteClick = (questionId, e) => {
+    e?.stopPropagation();
+    setQuestionToDelete(questionId);
+    setDeleteModalOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!questionToDelete) return;
+
+    try {
+      const response = await fetch(`/api/questions/${questionToDelete}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete question');
+      }
+
+      // Remove the deleted question from the state
+      setQuestions(questions.filter(q => q._id !== questionToDelete));
+      
+      // Close the modal
+      setDeleteModalOpen(false);
+      setQuestionToDelete(null);
+    } catch (error) {
+      console.error('Error deleting question:', error);
+    }
+  };
+
+  const closeDeleteModal = () => {
+    setDeleteModalOpen(false);
+    setQuestionToDelete(null);
+  };
+
+
+
   const handleCardClick = (question) => {
     setSelectedQuestion(question);
     setIsModalOpen(true);
@@ -243,6 +283,7 @@ const ProfileQuestions = ({ userId }) => {
             handleLike={handleLike}
             handleSave={handleSave}
             handleFollow={handleFollow}
+            handleDelete={handleDeleteClick}
             onClick={() => handleCardClick(question)}
             isQuestion={true}
           />
@@ -265,7 +306,14 @@ const ProfileQuestions = ({ userId }) => {
           isQuestion={true}
         />
       )}
+            <DeleteModal
+        isOpen={deleteModalOpen}
+        onClose={closeDeleteModal}
+        onConfirm={handleDeleteConfirm}
+        itemType="question" // Add this prop to customize the modal message
+      />
     </div>
+
   );
 };
 

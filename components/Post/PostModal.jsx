@@ -1,15 +1,14 @@
-// components/Post/PostModal.jsx
 'use client'
 
-import React, { useEffect,useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { User } from '@nextui-org/react';
 import Link from 'next/link';
-import { Heart, Bookmark, Share2, MessageCircle, X, ThumbsUp, Globe2 } from 'lucide-react';
+import { Heart, Bookmark, Share2, MessageCircle, X, ThumbsUp, Globe2, Trash2 } from 'lucide-react';
 import { formatDistanceToNowStrict } from 'date-fns';
 import Image from 'next/image'; // Add this import
 
 import CommentSection from './CommentSection';
-
+import DeleteModal from './DeleteModal'; // Add DeleteModal import
 
 const PostModal = ({
   isOpen,
@@ -22,10 +21,41 @@ const PostModal = ({
   savedPosts,
   followingUsers,
   handleFollow,
+  handleDelete, // Add handleDelete prop
 }) => {
   const [selectedPost, setSelectedPost] = useState(post);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
 
-  // Move useEffect hooks before the conditional return
+  const handleModalLike = async (postId, e) => {
+    e.stopPropagation();
+    if (!session) return;
+
+    const result = await handleLike(postId, e);
+    if (result.success) {
+      setSelectedPost(prev => ({
+        ...prev,
+        likes: result.likes,
+        likedBy: result.isLiked
+          ? [...(Array.isArray(prev.likedBy) ? prev.likedBy : []), session.user.id]
+          : (Array.isArray(prev.likedBy) ? prev.likedBy : []).filter(id => id !== session.user.id)
+      }));
+    }
+  };
+
+  const openDeleteModal = (e) => {
+    e.stopPropagation();
+    setDeleteModalOpen(true);
+  };
+
+  const closeDeleteModal = () => {
+    setDeleteModalOpen(false);
+  };
+
+  const handleDeleteConfirm = async () => {
+    await handleDelete(post._id);
+    onClose();
+  };
+
   useEffect(() => {
     const fetchPostWithComments = async () => {
       try {
@@ -54,7 +84,6 @@ const PostModal = ({
     };
   }, [isOpen]);
 
-  
   if (!isOpen || !post) return null;
 
   return (
@@ -95,24 +124,34 @@ const PostModal = ({
                   <span className="text-xs text-green-700">Public</span>
                 </div>
               </div>
-              <button
-            className={`px-4 py-1.5 text-sm font-medium ${
-              session?.user?.id === post.author?._id
-                ? 'text-gray-400 border-gray-400 cursor-not-allowed'
-                : followingUsers.has(post.author?._id)
-                ? 'text-white bg-green-600 border-green-600'
-                : 'text-green-600 border-green-600 hover:bg-green-50'
-            } border rounded-full transition-colors duration-200`}
-            onClick={(e) => handleFollow(post.author?._id, e)}
-            disabled={!session?.user || session.user.id === post.author?._id}
-          >
-            {session?.user?.id === post.author?._id 
-              ? 'You' 
-              : followingUsers.has(post.author?._id) 
-                ? 'Following' 
-                : 'Follow'}
-          </button>
+              <div className='flex items-center space-x-3'> 
 
+              {session?.user?.id === post.author?._id && (
+                <button
+                className="ml-2 text-red-600 hover:text-red-800 transition-colors duration-200"
+                  onClick={openDeleteModal}
+                  >
+                  <Trash2 className="w-5 h-5" />
+                </button>
+              )}
+              <button
+                className={`px-4 py-1.5 text-sm font-medium ${session?.user?.id === post.author?._id
+                    ? 'text-green-600 border-green-600 cursor-not-allowed'
+                    : followingUsers.has(post.author?._id)
+                    ? 'text-green-600 bg-green-600 border-green-600'
+                    : 'text-green-600 border-green-600 hover:bg-green-50'
+                    } border  rounded-full transition-colors duration-200`}
+                    onClick={(e) => handleFollow(post.author?._id, e)}
+                    disabled={!session?.user || session.user.id === post.author?._id}
+                    >
+                {session?.user?.id === post.author?._id
+                  ? 'You'
+                  : followingUsers.has(post.author?._id)
+                    ? 'Following'
+                    : 'Follow'}
+              </button>
+                </div>
+              
             </div>
 
             {/* Post Content */}
@@ -134,20 +173,18 @@ const PostModal = ({
             <div className="flex items-center justify-between pb-6 border-b">
               <div className="flex space-x-6">
                 <button
-                  className={`flex items-center space-x-2 ${likedPosts.has(post._id) ? 'text-green-600' : 'text-gray-600 hover:text-green-600'
+                  className={`flex items-center space-x-2 ${likedPosts.has(selectedPost._id) ? 'text-green-600' : 'text-gray-600 hover:text-green-600'
                     }`}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleLike(post._id, e);
-                  }}
+                  onClick={(e) => handleModalLike(selectedPost._id, e)}
                   disabled={!session}
                 >
                   <Heart
-                    className={`w-5 h-5 ${likedPosts.has(post._id) ? 'fill-current' : ''
+                    className={`w-5 h-5 ${likedPosts.has(selectedPost._id) ? 'fill-current' : ''
                       }`}
                   />
-                  <span>{post.likes || 0}</span>
+                  <span>{selectedPost.likes || 0}</span>
                 </button>
+
                 <button
                   className={`flex items-center space-x-2 ${savedPosts.has(post._id) ? 'text-green-600' : 'text-gray-600 hover:text-green-600'
                     }`}
@@ -174,12 +211,18 @@ const PostModal = ({
 
             <CommentSection
               id={post._id || post.id}
-              type={post.type || 'question'} 
+              type={post.type || 'question'}
               session={session}
             />
           </div>
         </div>
       </div>
+      <DeleteModal
+        isOpen={deleteModalOpen}
+        onClose={closeDeleteModal}
+        onConfirm={handleDeleteConfirm}
+        itemType="post"
+      />
     </div>
   );
 };

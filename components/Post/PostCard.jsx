@@ -1,6 +1,6 @@
 // components/Post/PostCard.jsx
 import { User } from '@nextui-org/react';
-import { Heart, Bookmark, MessageCircle, Globe2 } from 'lucide-react';
+import { Heart, Bookmark, MessageCircle, Globe2 ,Trash2 } from 'lucide-react';
 import { formatDistanceToNowStrict } from 'date-fns';
 
 import Image from 'next/image';
@@ -14,9 +14,13 @@ const PostCard = ({
   handleLike,
   handleSave,
   handleFollow,
+  handleDelete,
   onClick,
   isQuestion = false
 }) => {
+
+  const isOwnContent = session?.user?.id === item.author?._id;
+
   return (
     <div
       className="bg-white border rounded-xl shadow-sm mb-4 hover:shadow-md transition-all duration-200 cursor-pointer"
@@ -39,19 +43,32 @@ const PostCard = ({
               </span>
             </div>
           </div>
-          <button
-            className={`px-4 py-1.5 text-sm font-medium ${session?.user?.id === item.author?._id
-              ? 'text-gray-400 border-gray-400 cursor-not-allowed'
-              : followingUsers.has(item.author?._id)
-                ? 'text-white bg-green-600 border-green-600'
-                : 'text-green-600 border-green-600 hover:bg-green-50'
-              } border rounded-full transition-colors duration-200`}
-            onClick={(e) => handleFollow(item.author?._id, e)}
-            disabled={!session?.user || session.user.id === item.author?._id}
-          >
-            {session?.user?.id === item.author?._id ? 'You' :
-              followingUsers.has(item.author?._id) ? 'Following' : 'Follow'}
-          </button>
+          <div className="flex items-center space-x-3">
+
+          {isOwnContent && (
+              <button
+                className="p-2 text-red-600 hover:bg-red-50 rounded-full transition-colors duration-200"
+                onClick={(e) => handleDelete(item._id, e)}
+              >
+                <Trash2 className="w-5 h-5" />
+              </button>
+            )}
+
+            <button
+              className={`px-4 py-1.5 text-sm font-medium ${session?.user?.id === item.author?._id
+                ? 'text-green-600 border-green-600 cursor-not-allowed'
+                : followingUsers.has(item.author?._id)
+                  ? 'text-white bg-green-600 border-green-600'
+                  : 'text-green-600 border-green-600 hover:bg-green-50'
+                } border rounded-full transition-colors duration-200`}
+              onClick={(e) => handleFollow(item.author?._id, e)}
+              disabled={!session?.user || session.user.id === item.author?._id}
+            >
+              {session?.user?.id === item.author?._id ? 'You' :
+                followingUsers.has(item.author?._id) ? 'Following' : 'Follow'}
+            </button>
+          </div>
+
         </div>
 
         <h2 className="text-xl font-semibold mb-2 text-gray-800">{item.title || 'Untitled Item'}</h2>

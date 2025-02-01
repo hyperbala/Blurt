@@ -32,56 +32,83 @@ const PostList = ({ type = 'all', showAll = true }) => {
 
   const { selectedTopic, setSelectedTopic } = useTopicContext();
   const { data: session } = useSession();
-
   const {
     likedItems: likedPosts,
     savedItems: savedPosts,
     handleLike,
     handleSave,
+    setLikedItems,
+    setSavedItems
   } = useInteractions(filteredPosts, type);
 
-
   const handlePostLike = async (postId, e) => {
-    e.stopPropagation(); // Add this to prevent modal from opening
+    e.stopPropagation();
     if (!session?.user) return;
-
+  
     const result = await handleLike(postId, e);
     if (result.success) {
+      // Update posts state with new likes count
       setPosts(prevPosts =>
         prevPosts.map(post =>
           post._id === postId
-            ? { ...post, likes: result.likes }
+            ? { 
+                ...post, 
+                likes: result.likes,
+                likedBy: result.isLiked 
+                  ? [...(Array.isArray(post.likedBy) ? post.likedBy : []), session.user.id]
+                  : (Array.isArray(post.likedBy) ? post.likedBy : []).filter(id => id !== session.user.id)
+              }
             : post
         )
       );
-
+  
+      // Update selected post if open in modal
       if (selectedPost && selectedPost._id === postId) {
         setSelectedPost(prev => ({
           ...prev,
-          likes: result.likes
+          likes: result.likes,
+          likedBy: result.isLiked
+            ? [...(Array.isArray(prev.likedBy) ? prev.likedBy : []), session.user.id]
+            : (Array.isArray(prev.likedBy) ? prev.likedBy : []).filter(id => id !== session.user.id)
         }));
-      }
+      }return {
+        success: true,
+        likes: result.likes,
+        isLiked: result.isLiked
+      };
     }
-  };
-
+    return { success: false };
+  };  
+  
   const handlePostSave = async (postId, e) => {
-    e.stopPropagation(); // Add this to prevent modal from opening
+    e.stopPropagation();
     if (!session?.user) return;
-
+  
     const result = await handleSave(postId, e);
     if (result.success) {
+      // Update posts state with new saved count
       setPosts(prevPosts =>
         prevPosts.map(post =>
           post._id === postId
-            ? { ...post, savedCount: result.savedCount }
+            ? { 
+                ...post, 
+                savedCount: result.savedCount,
+                savedBy: result.isSaved 
+                  ? [...(Array.isArray(post.savedBy) ? post.savedBy : []), session.user.id]
+                  : (Array.isArray(post.savedBy) ? post.savedBy : []).filter(id => id !== session.user.id)
+              }
             : post
         )
       );
-
+  
+      // Update selected post if open in modal
       if (selectedPost && selectedPost._id === postId) {
         setSelectedPost(prev => ({
           ...prev,
-          savedCount: result.savedCount
+          savedCount: result.savedCount,
+          savedBy: result.isSaved
+            ? [...(Array.isArray(prev.savedBy) ? prev.savedBy : []), session.user.id]
+            : (Array.isArray(prev.savedBy) ? prev.savedBy : []).filter(id => id !== session.user.id)
         }));
       }
     }
@@ -136,32 +163,55 @@ const PostList = ({ type = 'all', showAll = true }) => {
   };
 
 
-  // Fetch posts
-  // Fetch posts
-  useEffect(() => {
-    const fetchPosts = async () => {
-      try {
-        let url = '/api/feed'; // default endpoint for combined feed
-
-        if (type === 'posts') {
-          url = '/api/posts';
-        } else if (type === 'questions') {
-          url = '/api/questions';
-        }
-
-        const response = await fetch(url);
-        const data = await response.json();
-        setPosts(data);
-        setFilteredPosts(data);
-        setLoading(false);
-      } catch (error) {
-        console.error('Error fetching posts:', error);
-        setLoading(false);
+useEffect(() => {
+  const fetchPosts = async () => {
+    try {
+      let url = '/api/feed';
+      if (type === 'posts') {
+        url = '/api/posts';
+      } else if (type === 'questions') {
+        url = '/api/questions';
       }
-    };
 
-    fetchPosts();
-  }, [type]);
+      const response = await fetch(url);
+      const data = await response.json();
+      setPosts(data);
+      setFilteredPosts(data);
+
+      // Initialize liked and saved states from the response data
+      if (session?.user) {
+        const newLikedPosts = new Set(
+          data.filter(post => {
+            // Check if the post is liked by the current user
+            const likedBy = Array.isArray(post.likedBy) ? post.likedBy : [post.likedBy];
+            return likedBy.some(id => id?.toString() === session.user.id);
+          }).map(post => post._id)
+        );
+        
+        const newSavedPosts = new Set(
+          data.filter(post => {
+            // Check if the post is saved by the current user
+            const savedBy = Array.isArray(post.savedBy) ? post.savedBy : [post.savedBy];
+            return savedBy.some(id => id?.toString() === session.user.id);
+          }).map(post => post._id)
+        );
+
+        // Update the liked and saved states in useInteractions
+        if (handleLike && handleSave) {
+          handleLike.setLikedItems?.(newLikedPosts);
+          handleSave.setSavedItems?.(newSavedPosts);
+        }
+      }
+      
+      setLoading(false);
+    } catch (error) {
+      console.error('Error fetching posts:', error);
+      setLoading(false);
+    }
+  };
+
+  fetchPosts();
+}, [type, session]);
 
   // Filter posts based on selected topic
   useEffect(() => {
@@ -328,14 +378,17 @@ const PostList = ({ type = 'all', showAll = true }) => {
           session={session}
           likedPosts={likedPosts}
           savedPosts={savedPosts}
-          handleLike={handleLike}
-          handleSave={handleSave}
-          setPosts={setPosts}
+          handleLike={handlePostLike}  // Make sure to pass handlePostLike instead of handleLike
+          handleSave={handlePostSave}  // Make sure to pass handlePostSave instead of handleSave
+                setPosts={setPosts}
           // Add these new props
           followingUsers={followingUsers}
           handleFollow={handleFollow}
         />
+        
       )}
+      
+
     </div>
   );
 }
