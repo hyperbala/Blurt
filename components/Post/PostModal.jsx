@@ -138,7 +138,7 @@ const PostModal = ({
                 className={`px-4 py-1.5 text-sm font-medium ${session?.user?.id === post.author?._id
                     ? 'text-green-600 border-green-600 cursor-not-allowed'
                     : followingUsers.has(post.author?._id)
-                    ? 'text-green-600 bg-green-600 border-green-600'
+                    ? 'text-white bg-green-600 border-green-600'
                     : 'text-green-600 border-green-600 hover:bg-green-50'
                     } border  rounded-full transition-colors duration-200`}
                     onClick={(e) => handleFollow(post.author?._id, e)}

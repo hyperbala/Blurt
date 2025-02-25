@@ -1,4 +1,3 @@
-// components/Navbar.jsx
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react';
@@ -12,8 +11,7 @@ import PostModal from './Post/PostModal';
 import ProfileIcon from './ProfileIcon';
 import { useSession } from 'next-auth/react';
 import debounce from 'lodash/debounce';
-import { usePostModal } from '../hooks/usePostModal';
-
+import { useInteractions } from '../hooks/useInteractions';
 
 const Navbar = () => {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -21,25 +19,183 @@ const Navbar = () => {
   const [searchResults, setSearchResults] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedPost, setSelectedPost] = useState(null);
+  const [followingUsers, setFollowingUsers] = useState(new Set());
   const searchRef = useRef(null);
   const resultsRef = useRef(null);
   const { data: session } = useSession();
 
-  // Use the PostModal hook
+  // Initialize useInteractions hook
   const {
-    isModalOpen: isPostModalOpen,
-    selectedPost,
-    followingUsers,
     likedItems: likedPosts,
     savedItems: savedPosts,
     handleLike,
-    handleSave,
-    handleFollow,
-    openModal,
-    closeModal
-  } = usePostModal(searchResults, setSearchResults);
+    handleSave
+  } = useInteractions(searchResults, 'all');
 
-  // Search functionality
+  const handleResultClick = async (result) => {
+    if (session?.user && result.author?._id) {
+      try {
+        const response = await fetch(`/api/users/follow/${result.author._id}`);
+        if (response.ok) {
+          const { isFollowing } = await response.json();
+          if (isFollowing) {
+            setFollowingUsers(prev => {
+              const newSet = new Set(prev);
+              newSet.add(result.author._id);
+              return newSet;
+            });
+          }
+        }
+      } catch (error) {
+        console.error('Error checking follow status:', error);
+      }
+    }
+
+    const formattedPost = {
+      ...result,
+      _id: result._id || result.id,
+      id: result._id || result.id,
+      likes: result.likes || 0,
+      isLiked: likedPosts.has(result._id || result.id),
+      isSaved: savedPosts.has(result._id || result.id),
+      type: result.type || 'post',
+      author: {
+        _id: result.author?._id,
+        name: result.author?.name,
+        image: result.author?.image,
+        username: result.author?.username
+      },
+      createdAt: result.createdAt || new Date().toISOString(),
+      comments: result.comments || [],
+      savedCount: result.savedCount || 0,
+      likedBy: Array.isArray(result.likedBy) ? result.likedBy : 
+               (result.likedBy ? [result.likedBy] : []),
+      savedBy: Array.isArray(result.savedBy) ? result.savedBy : 
+              (result.savedBy ? [result.savedBy] : [])
+    };
+
+    setSelectedPost(formattedPost);
+    setIsModalOpen(true);
+    setIsSearchOpen(false);
+  };
+
+  const handlePostLike = async (postId, e) => {
+    e?.stopPropagation();
+    if (!session?.user) return;
+
+    const result = await handleLike(postId, e);
+    if (result.success) {
+      setSearchResults(prevResults =>
+        prevResults.map(post =>
+          post._id === postId
+            ? {
+                ...post,
+                likes: result.likes,
+                likedBy: result.isLiked
+                  ? [...(Array.isArray(post.likedBy) ? post.likedBy : []), session.user.id]
+                  : (Array.isArray(post.likedBy) ? post.likedBy : []).filter(id => id !== session.user.id)
+              }
+            : post
+        )
+      );
+
+      if (selectedPost && selectedPost._id === postId) {
+        setSelectedPost(prev => ({
+          ...prev,
+          likes: result.likes,
+          likedBy: result.isLiked
+            ? [...(Array.isArray(prev.likedBy) ? prev.likedBy : []), session.user.id]
+            : (Array.isArray(prev.likedBy) ? prev.likedBy : []).filter(id => id !== session.user.id)
+        }));
+      }
+    }
+  };
+
+  const handlePostSave = async (postId, e) => {
+    e?.stopPropagation();
+    if (!session?.user) return;
+
+    const result = await handleSave(postId, e);
+    if (result.success) {
+      setSearchResults(prevResults =>
+        prevResults.map(post =>
+          post._id === postId
+            ? {
+                ...post,
+                savedCount: result.savedCount,
+                savedBy: result.isSaved
+                  ? [...(Array.isArray(post.savedBy) ? post.savedBy : []), session.user.id]
+                  : (Array.isArray(post.savedBy) ? post.savedBy : []).filter(id => id !== session.user.id)
+              }
+            : post
+        )
+      );
+
+      if (selectedPost && selectedPost._id === postId) {
+        setSelectedPost(prev => ({
+          ...prev,
+          savedCount: result.savedCount,
+          savedBy: result.isSaved
+            ? [...(Array.isArray(prev.savedBy) ? prev.savedBy : []), session.user.id]
+            : (Array.isArray(prev.savedBy) ? prev.savedBy : []).filter(id => id !== session.user.id)
+        }));
+      }
+    }
+  };
+
+  const handleFollow = async (authorId, e) => {
+    e?.stopPropagation();
+    if (!session?.user || session.user.id === authorId) return;
+
+    try {
+      const response = await fetch(`/api/users/follow/${authorId}`, {
+        method: 'POST',
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        console.error('Error following user:', data.error);
+        return;
+      }
+
+      setFollowingUsers(prev => {
+        const newSet = new Set(prev);
+        if (data.isFollowing) {
+          newSet.add(authorId);
+        } else {
+          newSet.delete(authorId);
+        }
+        return newSet;
+      });
+
+    } catch (error) {
+      console.error('Error following user:', error);
+    }
+  };
+
+  // Effect for keyboard shortcuts
+  useEffect(() => {
+    const handleKeyPress = (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setIsSearchOpen(true);
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyPress);
+    return () => document.removeEventListener('keydown', handleKeyPress);
+  }, []);
+
+  // Effect for search focus
+  useEffect(() => {
+    if (isSearchOpen && searchRef.current) {
+      searchRef.current.focus();
+    }
+  }, [isSearchOpen]);
+
+  // Your existing search logic
   const debouncedSearch = useCallback(
     async (query) => {
       if (query.trim().length === 0) {
@@ -60,35 +216,17 @@ const Navbar = () => {
         setIsLoading(false);
       }
     },
-    [setSearchResults, setIsLoading]
-);
+    []
+  );
 
-// Wrap the debounced version outside of the component or use useMemo
-const debouncedSearchHandler = debounce(debouncedSearch, 300);
+  const debouncedSearchHandler = debounce(debouncedSearch, 300);
 
-// In your handleSearchChange function:
-const handleSearchChange = (e) => {
+  const handleSearchChange = (e) => {
     const query = e.target.value;
     setSearchQuery(query);
     setSelectedIndex(-1);
     debouncedSearchHandler(query);
-};
-
-  const handleResultClick = (result) => {
-    openModal({
-      ...result,
-      type: result.type || 'post',
-      author: {
-        _id: result.author?._id,
-        name: result.author?.name,
-        image: result.author?.image,
-        username: result.author?.username
-      }
-    });
-    setIsSearchOpen(false);
   };
-
-  
   // Effect for keyboard shortcuts
   useEffect(() => {
     const handleKeyPress = (e) => {
@@ -179,7 +317,6 @@ const handleSearchChange = (e) => {
                 <X className="w-6 h-6 text-gray-500" />
               </button>
             </div>
-
             <div
               ref={resultsRef}
               className="max-h-[calc(100vh-200px)] overflow-y-auto"
@@ -198,35 +335,38 @@ const handleSearchChange = (e) => {
                         className={`flex items-center p-3 rounded-lg transition-colors duration-200 cursor-pointer ${index === selectedIndex ? 'bg-green-50' : 'hover:bg-gray-50'
                           }`}
                       >
-                        <div className="flex-shrink-0 mr-4">
-                          {result.image ? (
-                            <div className="w-12 h-12 rounded-lg overflow-hidden">
-                              <Image
-                                src={result.image}
-                                alt={result.title}
-                                width={48}
-                                height={48}
-                                className="object-cover w-full h-full"
-                              />
-                            </div>
-                          ) : (
-                            <div className="w-12 h-12 rounded-lg bg-green-100 flex items-center justify-center">
-                              <span className="text-green-600 text-lg">
-                                {result.type === 'question' ? 'Q' : 'P'}
-                              </span>
-                            </div>
-                          )}
-                        </div>
+                        {/* ... result content ... */}
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <h3 className="font-medium text-gray-900 truncate">
-                              {result.title}
-                            </h3>
-                            {result.category && (
-                              <span className="px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full">
-                                {result.category}
-                              </span>
-                            )}
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <h3 className="font-medium text-gray-900 truncate">
+                                {result.title}
+                              </h3>
+                              {result.category && (
+                                <span className="px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full">
+                                  {result.category}
+                                </span>
+                              )}
+                            </div>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleFollow(result.author._id, e);
+                              }}
+                              className={`px-4 py-1.5 text-sm font-medium ${session?.user?.id === result.author?._id
+                                  ? 'text-gray-400 border-gray-400 cursor-not-allowed'
+                                  : followingUsers.has(result.author?._id)
+                                    ? 'text-white bg-green-600 border-green-600'
+                                    : 'text-green-600 border-green-600 hover:bg-green-50'
+                                } border rounded-full transition-colors duration-200`}
+                              disabled={!session?.user || session.user.id === result.author?._id}
+                            >
+                              {session?.user?.id === result.author?._id
+                                ? 'You'
+                                : followingUsers.has(result.author?._id)
+                                  ? 'Following'
+                                  : 'Follow'}
+                            </button>
                           </div>
                           <p className="text-sm text-gray-500 line-clamp-1">
                             {result.description}
@@ -244,7 +384,7 @@ const handleSearchChange = (e) => {
                       </div>
                     ))}
                   </div>
-                ) :  (
+                ) : (
                   <div className="p-4 text-center text-gray-500">
                     No results found for &quot;{searchQuery}&quot;
                   </div>
@@ -260,20 +400,25 @@ const handleSearchChange = (e) => {
       )}
 
       {/* Post Modal */}
-      {isPostModalOpen && selectedPost && (
+      {isModalOpen && selectedPost && (
         <PostModal
-          isOpen={isPostModalOpen}
-          onClose={closeModal}
+          isOpen={isModalOpen}
+          onClose={() => {
+            setIsModalOpen(false);
+            setSelectedPost(null);
+          }}
           post={selectedPost}
           session={session}
           likedPosts={likedPosts}
           savedPosts={savedPosts}
-          handleLike={handleLike}
-          handleSave={handleSave}
+          handleLike={handlePostLike}
+          handleSave={handlePostSave}
+          setPosts={setSearchResults}
           followingUsers={followingUsers}
           handleFollow={handleFollow}
         />
       )}
+
     </div>
   );
 };
