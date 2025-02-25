@@ -10,20 +10,19 @@ export default function SignIn() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
 
+
   const handleGoogleSignIn = async () => {
     setLoading(true);
+    setError('');
+    
     try {
-      const result = await signIn('google', {
+      await signIn('google', {
         callbackUrl: '/auth/username-select',
-        redirect: false,
       });
-      
-      if (result?.error) {
-        console.error(result.error);
-      }
+
     } catch (error) {
-      console.error(error);
-    } finally {
+      console.error('Sign in error:', error);
+      setError('Failed to sign in with Google. Please try again.');
       setLoading(false);
     }
   };
@@ -52,6 +51,7 @@ export default function SignIn() {
             </>
           )}
         </button>
+        
       </div>
     </div>
   );
