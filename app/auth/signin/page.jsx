@@ -13,7 +13,6 @@ export default function SignIn() {
 
   const handleGoogleSignIn = async () => {
     setLoading(true);
-    setError('');
     
     try {
       await signIn('google', {
@@ -22,7 +21,7 @@ export default function SignIn() {
 
     } catch (error) {
       console.error('Sign in error:', error);
-      setError('Failed to sign in with Google. Please try again.');
+      // setError('Failed to sign in with Google. Please try again.');
       setLoading(false);
     }
   };
