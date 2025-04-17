@@ -2,7 +2,7 @@ import './globals.css';
 import ClientProviders from './ClientProviders';
 import {NextUIProvider} from "@nextui-org/react";
 export const metadata = {
-  title: 'Plant Dr',
+  title: 'Blurt',
   description: 'Your App Description',
 };
 
