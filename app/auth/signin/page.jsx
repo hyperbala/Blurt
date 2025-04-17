@@ -5,7 +5,7 @@ import { signIn } from 'next-auth/react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import upavana from '../../../public/logo/upavana.svg';
+import blurt from '../../../public/logo/blurt.svg';
 export default function SignIn() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -30,7 +30,7 @@ export default function SignIn() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="max-w-md w-full space-y-8 p-8 bg-white rounded-lg shadow">
         <div className="text-center">
-        <Image src={upavana} alt="Upavana" width={2} height={2} className="mx-auto h-36 w-auto" />
+        <Image src={blurt} alt="blurt" width={2} height={2} className="mx-auto h-36 w-auto" />
           <h2 className="mt-6 text-3xl font-bold text-gray-900">
             Sign in to your account
           </h2>
