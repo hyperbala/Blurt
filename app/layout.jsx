@@ -3,7 +3,7 @@ import ClientProviders from './ClientProviders';
 import {NextUIProvider} from "@nextui-org/react";
 export const metadata = {
   title: 'Blurt',
-  description: 'Your App Description',
+  description: 'Communitcate',
 };
 
 export default function RootLayout({ children }) {
