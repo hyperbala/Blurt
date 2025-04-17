@@ -5,7 +5,7 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
-import upavana from '../../../public/logo/upavana.svg';
+import upavana from '../../../public/logo/blurt.svg';
 
 export default function UsernameSelect() {
   const { data: session, status, update } = useSession();
@@ -58,7 +58,7 @@ export default function UsernameSelect() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="max-w-md w-full space-y-8 p-8 bg-white rounded-lg shadow">
         <div className="text-center">
-          <Image src={upavana} alt="Upavana" width={1} height={1} className="mx-auto h-28 w-auto" />
+          <Image src={upavana} alt="Upavana" width={1} height={1} className="mx-auto h-36 w-auto" />
           <h2 className="mt-6 text-3xl font-bold text-gray-900">
             Choose your username
           </h2>
