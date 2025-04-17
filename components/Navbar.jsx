@@ -275,9 +275,9 @@ const Navbar = () => {
   return (
     <div className="sticky top-0 left-0 right-0 z-50 bg-white shadow-sm px-24">
       {/* Navigation Bar */}
-      <nav className="flex justify-between items-center p-2 px-5 md:px-10">
+      <nav className="flex justify-between items-center p-2 md:p-0 px-5 md:px-24">
         <Link href="/" className='md:block hidden'>
-          <Image src="/logo/upavana.svg" alt="Upavana Logo" width={80} height={80} />
+          <Image src="/logo/upavana.svg" alt="Upavana Logo" width={120} height={100} />
         </Link>
         <div className="flex justify-around items-center gap-10 text-black">
           <button
